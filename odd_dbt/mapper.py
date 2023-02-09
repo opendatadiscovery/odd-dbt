@@ -1,24 +1,92 @@
 import traceback
+import re
 from datetime import datetime
+from enum import Enum
 from typing import Optional
 
-from odd_models.models import (DataEntity, DataEntityList, DataEntityType,
-                               DataQualityTest, DataQualityTestExpectation,
-                               DataQualityTestRun, LinkedUrl, QualityRunStatus)
-from oddrn_generator import DbtGenerator, SnowflakeGenerator, Generator
+from odd_models.models import (
+    DataEntity, DataEntityList, DataEntityType,
+    DataQualityTest, DataQualityTestExpectation,
+    DataQualityTestRun, QualityRunStatus)
+from oddrn_generator import (
+    Generator, DbtGenerator, SnowflakeGenerator,
+    RedshiftGenerator, PostgresqlGenerator
+)
 from odd_dbt.logger import logger
 from odd_dbt.parser import DbtRunContext
 
 
+class AdapterType(Enum):
+    SNOWFLAKE = "snowflake"
+    REDSHIFT = "redshift"
+    POSTGRES = "postgres"
+
+
+class GeneratorFabric:
+    def __init__(self, adapter_type: str, databases: str, context_profile: dict):
+        self.generator_classes = {
+            "snowflake": SnowflakeGenerator,
+            "redshift": RedshiftGenerator,
+            "postgres": PostgresqlGenerator,
+        }
+        self.adapter_type = adapter_type
+        self.context_profile = context_profile
+        self.databases = databases
+
+    def get_generator(self) -> Optional[Generator]:
+        generator_class = self.generator_classes.get(self.adapter_type)
+        if not generator_class:
+            logger.warning(f"Generator not available for dataset: {self.adapter_type}")
+            return
+        return generator_class(host_settings=self.host_settings, databases=self.databases)
+
+    @property
+    def host_settings(self) -> str:
+        if self.adapter_type == AdapterType.SNOWFLAKE.value:
+            return self.context_profile["account"] + ".snowflakecomputing.com"
+        else:
+            return self.context_profile["host"]
+
+
+class StatusReason:
+    def __init__(self, test_def: dict):
+        self.test_type = test_def["test_metadata"]["name"]
+        self.metadata = test_def["test_metadata"]["kwargs"]
+        self.model = re.search(r"'(.*)'", self.metadata["model"]).group(1)
+        self.column = self.metadata["column_name"]
+
+    def get_reason(self) -> str:
+        method = getattr(self, self.test_type, self.default)
+        return method()
+
+    def unique(self) -> str:
+        return f"The {self.column} column in the {self.model} model should be unique"
+
+    def not_null(self) -> str:
+        return f"the {self.column} column in the {self.model} model should not contain null values"
+
+    def accepted_values(self) -> str:
+        acc_values = self.metadata["values"]
+        return f"The {self.column} column in the {self.model} should be one of {acc_values}"
+
+    def relationships(self) -> str:
+        ref_model = re.search(r"'(.*)'", self.metadata["to"]).group(1)
+        ref_field = self.metadata["field"]
+        return f"Each value in the {self.column} in the {self.model} should exists as an {ref_field} in the {ref_model}"
+
+    def default(self) -> str:
+        return f"Status reason for test {self.test_type} not implemented yet"
+
+
 class DbtTestMapper:
-    def __init__(self, tests: list[dict], context: DbtRunContext, generator: DbtGenerator) -> None:
-        self._tests = tests
+    def __init__(self, tests_results: list[dict], context: DbtRunContext, generator: DbtGenerator) -> None:
+        self._tests_results = tests_results
         self._context = context
         self._generator = generator
 
     def map(self) -> DataEntityList:
         data_entities = []
-        for test_result in self._tests:
+        for test_result in self._tests_results:
             data_entities.extend(self._map_result(test_result))
 
         return DataEntityList(
@@ -34,6 +102,7 @@ class DbtTestMapper:
             status = QualityRunStatus.SUCCESS if test_result["status"] == "pass" else QualityRunStatus.FAILED
             job = self._map_config(test_id)
             oddrn = self._generator.get_oddrn_by_path("runs", f"{test_id}.{invocation_id}")
+            test_def = self._context.manifest["nodes"][test_id]
 
             run = DataEntity(
                 oddrn=oddrn,
@@ -44,6 +113,7 @@ class DbtTestMapper:
                     start_time=datetime.strptime(start_time_str, "%Y-%m-%dT%H:%M:%S.%fZ").astimezone(),
                     end_time=datetime.now().astimezone(),
                     status=status,
+                    status_reason=StatusReason(test_def).get_reason()
                 ),
             )
             return job, run
@@ -78,30 +148,17 @@ class DbtTestMapper:
         )
 
     def _get_dataset_oddrn(self, test_config: dict, nodes: dict):
-        ref_name = test_config["refs"][0][0]
-        model_id = "model." + test_config["package_name"] + "." + ref_name
-        model_config = nodes[model_id]
         adapter_type = self._context.manifest["metadata"]["adapter_type"]
+        model_name = re.search(r"'(.*)'", test_config["test_metadata"]["kwargs"]["model"]).group(1)
+        model_id = "model." + test_config["package_name"] + "." + model_name
+        model_config = nodes[model_id]
         database = model_config["database"]
         schema = model_config["schema"]
+        name = model_config["name"].upper() if adapter_type == AdapterType.SNOWFLAKE.value else model_config["name"]
         path = "tables" if model_config["config"]["materialized"] == "table" else "views"
 
-        generator = self._get_dataset_generator(adapter_type, database)
+        generator = GeneratorFabric(adapter_type, database, self._context.profile).get_generator()
         generator.set_oddrn_paths(**{"schemas": schema})
-        dataset_oddrn = generator.get_oddrn_by_path(path, model_config["name"].upper())
+        dataset_oddrn = generator.get_oddrn_by_path(path, name)
 
         return dataset_oddrn
-
-    def _get_dataset_generator(self, adapter_type: str, database: str) -> Optional[Generator]:
-
-        host_settings = self._context.profile["account"]
-        host_settings += ".snowflakecomputing.com" if adapter_type == "snowflake" else ""
-        fabric = {
-            "snowflake": SnowflakeGenerator,
-        }
-        try:
-            generator = fabric[adapter_type](host_settings=host_settings, databases=database)
-            return generator
-        except KeyError:
-            logger.warning(f"Generator not available for dataset: {adapter_type}")
-            return None

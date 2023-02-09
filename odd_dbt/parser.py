@@ -11,8 +11,8 @@ from odd_dbt.logger import logger
 class DbtRunContext:
     manifest: dict
     run_results: dict
-    catalog: dict
     profile: dict
+    catalog: dict = None
 
 
 class DbtArtifactParser:
@@ -62,11 +62,12 @@ class DbtArtifactParser:
 
     def parse_metadata(self) -> tuple[list[dict], DbtRunContext]:
         run_results = self._load_json(self.run_result_path)
+        catalog = self._load_json(self.catalog_path) if os.path.isfile(self.catalog_path) else None
         context = DbtRunContext(
             manifest=self._load_json(self.manifest_path),
             run_results=run_results,
-            catalog=self._load_json(self.catalog_path),
-            profile=self._parse_profile(run_results)
+            profile=self._parse_profile(run_results),
+            catalog=catalog,
         )
         tests = [node for node in run_results['results']]
         logger.info("Successfully parsed metadata files")
