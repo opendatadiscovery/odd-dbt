@@ -1,4 +1,5 @@
 # OpenDataDiscovery dbt tests metadata collecting
+[![PyPI version](https://badge.fury.io/py/odd-dbt.svg)](https://badge.fury.io/py/odd-dbt)
 
 Library used for running dbt tests and injecting them as entities to ODD platform. 
 
