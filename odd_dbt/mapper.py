@@ -23,7 +23,7 @@ class AdapterType(Enum):
 
 
 class GeneratorFabric:
-    def __init__(self, adapter_type: str, databases: str, context_profile: dict):
+    def __init__(self, adapter_type: AdapterType, databases: str, context_profile: dict):
         self.generator_classes = {
             "snowflake": SnowflakeGenerator,
             "redshift": RedshiftGenerator,
@@ -34,7 +34,7 @@ class GeneratorFabric:
         self.databases = databases
 
     def get_generator(self) -> Optional[Generator]:
-        generator_class = self.generator_classes.get(self.adapter_type)
+        generator_class = self.generator_classes.get(self.adapter_type.value)
         if not generator_class:
             logger.warning(f"Generator not available for dataset: {self.adapter_type}")
             return
@@ -42,7 +42,7 @@ class GeneratorFabric:
 
     @property
     def host_settings(self) -> str:
-        if self.adapter_type == AdapterType.SNOWFLAKE.value:
+        if self.adapter_type == AdapterType.SNOWFLAKE:
             return self.context_profile["account"] + ".snowflakecomputing.com"
         else:
             return self.context_profile["host"]
@@ -151,13 +151,13 @@ class DbtTestMapper:
         )
 
     def _get_dataset_oddrn(self, test_config: dict, nodes: dict):
-        adapter_type = self._context.manifest["metadata"]["adapter_type"]
+        adapter_type = AdapterType(self._context.manifest["metadata"]["adapter_type"])
         model_name = re.search(r"'(.*)'", test_config["test_metadata"]["kwargs"]["model"]).group(1)
         model_id = "model." + test_config["package_name"] + "." + model_name
         model_config = nodes[model_id]
         database = model_config["database"]
         schema = model_config["schema"]
-        name = model_config["name"].upper() if adapter_type == AdapterType.SNOWFLAKE.value else model_config["name"]
+        name = model_config["name"].upper() if adapter_type == AdapterType.SNOWFLAKE else model_config["name"]
         path = "tables" if model_config["config"]["materialized"] == "table" else "views"
 
         generator = GeneratorFabric(adapter_type, database, self._context.profile).get_generator()
