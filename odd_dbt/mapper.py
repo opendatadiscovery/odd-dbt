@@ -98,11 +98,14 @@ class DbtTestMapper:
         try:
             test_id = test_result['unique_id']
             invocation_id = self._context.run_results["metadata"]["invocation_id"]
-            start_time_str = test_result["timing"][0]["completed_at"]
-            status = QualityRunStatus.SUCCESS if test_result["status"] == "pass" else QualityRunStatus.FAILED
+            start_time_str = test_result["timing"][0]["started_at"]
+            end_time_str = test_result["timing"][1]["completed_at"]
+
             job = self._map_config(test_id)
             oddrn = self._generator.get_oddrn_by_path("runs", f"{test_id}.{invocation_id}")
             test_def = self._context.manifest["nodes"][test_id]
+            test_status = test_result["status"]
+            status, status_reason = self._get_status(test_status, test_def)
 
             run = DataEntity(
                 oddrn=oddrn,
@@ -111,9 +114,9 @@ class DbtTestMapper:
                 data_quality_test_run=DataQualityTestRun(
                     data_quality_test_oddrn=job.oddrn,
                     start_time=datetime.strptime(start_time_str, "%Y-%m-%dT%H:%M:%S.%fZ").astimezone(),
-                    end_time=datetime.now().astimezone(),
+                    end_time=datetime.strptime(end_time_str, "%Y-%m-%dT%H:%M:%S.%fZ").astimezone(),
                     status=status,
-                    status_reason=StatusReason(test_def).get_reason()
+                    status_reason=status_reason
                 ),
             )
             return job, run
@@ -162,3 +165,14 @@ class DbtTestMapper:
         dataset_oddrn = generator.get_oddrn_by_path(path, name)
 
         return dataset_oddrn
+
+    @staticmethod
+    def _get_status(test_status: str, test_def: dict) -> tuple[QualityRunStatus, Optional[str]]:
+        status = QualityRunStatus.SUCCESS
+        status_reason = None
+
+        if test_status == "fail":
+            status = QualityRunStatus.FAILED
+            status_reason = StatusReason(test_def).get_reason()
+
+        return status, status_reason
