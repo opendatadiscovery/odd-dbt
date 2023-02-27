@@ -1,16 +1,17 @@
 import traceback
 
 from odd_models.models import DataEntityList
+from oddrn_generator.generators import DbtGenerator
+
 from odd_dbt.logger import logger
 from odd_dbt.mapper import DbtTestMapper
 from odd_dbt.parser import DbtArtifactParser
-from oddrn_generator.generators import DbtGenerator
 
 
 class ODDAction:
     def __init__(
-            self,
-            parser: DbtArtifactParser,
+        self,
+        parser: DbtArtifactParser,
     ):
         self._host = "localhost"
         self._parser = parser
