@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "odd-dbt"
-version = "0.1.4"
+version = "0.1.5"
 description = "OpenDataDiscovery Action for dbt"
 authors = ["Mateusz Kulas <mkulas@provectus.com>"]
 readme = "README.md"
