@@ -26,30 +26,30 @@ class DbtTestMapper:
         self._generator = generator
 
     def map(self) -> DataEntityList:
-        data_entities = lmapcat(self.map_result, self._context.tests)
+        data_entities = lmapcat(self.map_result, self._context.results)
 
         return DataEntityList(
             data_source_oddrn=self._generator.get_data_source_oddrn(),
             items=data_entities,
         )
 
-    def map_result(self, test_result: dict) -> Optional[tuple[DataEntity, DataEntity]]:
-        test_id: str = test_result["unique_id"]
-        invocation_id = self._context.run_results["metadata"]["invocation_id"]
+    def map_result(self, result: dict) -> Optional[tuple[DataEntity, DataEntity]]:
+        test_id: str = result["unique_id"]
+        invocation_id: str = self._context.invocation_id
 
         assert test_id is not None
         assert invocation_id is not None
 
         start_time_str: Optional[datetime] = get_in(
-            test_result, ["timing", 0, "started_at"], None
+            result, ["timing", 0, "started_at"], None
         )
-        end_time_str = get_in(test_result, ["timing", 1, "completed_at"])
+        end_time_str = get_in(result, ["timing", 1, "completed_at"])
 
         job = self.map_config(test_id)
         oddrn = self._generator.get_oddrn_by_path("runs", f"{test_id}.{invocation_id}")
 
         test_def = self._context.manifest["nodes"][test_id]
-        test_status = test_result["status"]
+        test_status = result["status"]
         status, status_reason = parse_status(test_status, test_def)
 
         run = DataEntity(

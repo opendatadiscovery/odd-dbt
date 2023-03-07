@@ -46,7 +46,6 @@ class DbtContext:
                 target=target,
                 profiles_dir=Path(self.run_results["args"]["profiles_dir"]),
             )
-            self.tests = list(self.run_results.get("results", []))
         except Exception as e:
             raise DbtInternalError(f"Failed to parse dbt context: {e}") from e
 
@@ -72,3 +71,11 @@ class DbtContext:
             return profile["outputs"][target]
         else:
             raise ValueError("Target was not set")
+
+    @property
+    def results(self) -> list[dict]:
+        return self.run_results.get("results", [])
+
+    @property
+    def invocation_id(self) -> str:
+        return self.run_results["metadata"]["invocation_id"]
