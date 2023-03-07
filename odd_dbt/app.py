@@ -1,6 +1,7 @@
 import subprocess
 import traceback
 from pathlib import Path
+from typing import Optional
 
 import typer
 from odd_models.api_client.v2.odd_api_client import Client
@@ -16,8 +17,8 @@ app = typer.Typer(short_help="Run dbt tests and inject results to ODD platform")
 @app.command()
 def test(
     project_dir: Path = typer.Option(default=Path().cwd()),
-    target: str = typer.Option(None, "--target", "-t"),
-    profile_name: str = typer.Option(None, "--profile", "-p"),
+    target: Optional[str] = typer.Option(default=None),
+    profile_name: Optional[str] = typer.Option(default=None),
     platform_host: str = typer.Option(..., "--host", "-h", envvar="ODD_PLATFORM_HOST"),
     platform_token: str = typer.Option(
         ..., "--token", "-t", envvar="ODD_PLATFORM_TOKEN"
