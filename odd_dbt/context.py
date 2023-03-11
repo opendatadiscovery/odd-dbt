@@ -1,23 +1,17 @@
-import json
 from pathlib import Path
 from typing import Optional
 
-import yaml
-
 from odd_dbt.errors import DbtInternalError
-
-
-def load_yaml(file_path: Path) -> dict:
-    with file_path.open() as file:
-        return yaml.load(file, yaml.FullLoader)
-
-
-def load_json(file_path: Path) -> dict:
-    with file_path.open() as file:
-        return json.load(file)
+from odd_dbt.models import Manifest, Profile, RunResults
+from odd_dbt.models.project import Project
+from odd_dbt.utils import load_json, load_yaml
 
 
 class DbtContext:
+    run_results: RunResults
+    manifest: Manifest
+    profile: Profile
+
     def __init__(
         self,
         project_dir: Path,
@@ -25,16 +19,14 @@ class DbtContext:
         target: Optional[str] = None,
     ):
         try:
-            project = load_yaml(project_dir / "dbt_project.yml")
+            project = Project.parse_obj(load_yaml(project_dir / "dbt_project.yml"))
 
-            target_path = project.get("target-path")
-
-            if target_path is None:
-                raise ValueError("Target path was not set")
+            if not (target_path := project.target_path):
+                raise ValueError("Target path must be set")
 
             target_path = project_dir / target_path
-            self.manifest = load_json(target_path / "manifest.json")
-            self.run_results = load_json(target_path / "run_results.json")
+            manifest = Manifest(target_path / "manifest.json")
+            run_results = RunResults(target_path / "run_results.json")
 
             self.catalog = None
             if (catalog := target_path / "catalog.json").is_file():
@@ -44,38 +36,35 @@ class DbtContext:
                 project=project,
                 profile_name=profile_name,
                 target=target,
-                profiles_dir=Path(self.run_results["args"]["profiles_dir"]),
+                profiles_dir=run_results.profiles_dir,
             )
+            self.run_results = run_results
+            self.manifest = manifest
         except Exception as e:
             raise DbtInternalError(f"Failed to parse dbt context: {e}") from e
 
     def parse_profile(
         self,
-        project: dict,
+        project: Project,
         profiles_dir: Path,
         profile_name: Optional[str],
         target: Optional[str],
-    ) -> dict:
-        profile_name = profile_name or project.get("profile", None)
-
+    ) -> Profile:
+        profile_name = profile_name or project.profile
         if not profile_name:
-            raise KeyError(f"Profile was not found in {project}")
+            raise ValueError(f"Profile was not found.")
 
-        profile_config = load_yaml(profiles_dir / "profiles.yml")
-        profile = profile_config.get(profile_name)
+        profiles = load_yaml(profiles_dir / "profiles.yml")
 
-        if not profile:
+        if not (profile := profiles.get(profile_name)):
             raise ValueError("Profile was not set")
 
-        if target := target or profile.get("target"):
-            return profile["outputs"][target]
-        else:
-            raise ValueError("Target was not set")
+        return Profile.from_dict(profile, target)
 
     @property
     def results(self) -> list[dict]:
-        return self.run_results.get("results", [])
+        return self.run_results.results
 
     @property
     def invocation_id(self) -> str:
-        return self.run_results["metadata"]["invocation_id"]
+        return self.run_results.invocation_id

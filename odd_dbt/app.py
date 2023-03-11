@@ -23,14 +23,14 @@ def test(
     platform_token: str = typer.Option(
         ..., "--token", "-t", envvar="ODD_PLATFORM_TOKEN"
     ),
-    dbt_host: str = typer.Option("localhost", "--dbt-host"),
+    dbt_host: str = typer.Option(default="localhost"),
 ):
     try:
-        logger.debug(f"Run dbt process with {project_dir=}, {target=}, {profile_name=}")
+        logger.info(f"Run dbt process with {project_dir=}, {target=}, {profile_name=}")
         process = subprocess.run(["dbt", "test", "--project-dir", project_dir])
 
         if process.returncode >= 2:
-            logger.error("dbt test command failed")
+            logger.error("Dbt test command failed")
             raise typer.Exit(2)
 
         client = Client(host=platform_host, token=platform_token)
@@ -39,15 +39,15 @@ def test(
             data_source_name="dbt", data_source_oddrn=generator.get_data_source_oddrn()
         )
 
-        context = DbtContext(
-            project_dir=project_dir, profile_name=profile_name, target=target
-        )
+        context = DbtContext(project_dir=project_dir, profile_name=None, target=None)
 
-        logger.success("Got DBT test context. Start mapping...")
+        logger.info("Got DBT test context. Start mapping...")
         data_entities = DbtTestMapper(context=context, generator=generator).map()
-        logger.success("Mapping finished. Start injecting...")
+
+        logger.info("Mapping finished. Start injecting...")
         client.ingest_data_entity_list(data_entities=data_entities)
-        logger.success("Injecting finished.")
+
+        logger.info("Injecting finished.")
     except Exception as e:
         logger.debug(traceback.format_exc())
         logger.error(e)
