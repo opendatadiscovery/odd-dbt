@@ -8,6 +8,8 @@ from oddrn_generator import (
     SnowflakeGenerator,
 )
 
+from odd_dbt.models import Profile
+
 
 class DataSource(Enum):
     SNOWFLAKE = "snowflake"
@@ -22,8 +24,8 @@ class GeneratorAdaptee:
     ) -> None:
         self._generator_cls = generator_cls
 
-    def create(self, database: str, profile: dict) -> Generator:
-        host = profile["host"]
+    def create(self, database: str, profile: Profile) -> Generator:
+        host = profile.host
         return self._create(database, host)
 
     def _create(self, database: str, host: str) -> Generator:
@@ -31,8 +33,8 @@ class GeneratorAdaptee:
 
 
 class SnowflakeAdaptee(GeneratorAdaptee):
-    def create(self, database: str, profile: dict) -> Generator:
-        host = profile["account"] + ".snowflakecomputing.com"
+    def create(self, database: str, profile: Profile) -> Generator:
+        host = profile.account + ".snowflakecomputing.com"
         return super()._create(database, host)
 
 
@@ -44,7 +46,7 @@ DATA_SOURCE_GENERATORS: dict[DataSource, GeneratorAdaptee] = {
 
 
 def get_datasource_generator(
-    data_source: DataSource, database: str, profile: dict
+    data_source: DataSource, database: str, profile: Profile
 ) -> Generator:
     if generator := DATA_SOURCE_GENERATORS.get(data_source):
         return generator.create(database=database, profile=profile)
