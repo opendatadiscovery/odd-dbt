@@ -10,10 +10,9 @@ packages = [{include = "odd_dbt"}]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-dbt-core = "^1.4.1"
-dbt-snowflake = "1.4.1"
-dbt-redshift = "1.4.0"
-dbt-postgres = "1.4.1"
+dbt-core = "^1.4.5"
+dbt-redshift = "^1.4.0"
+dbt-postgres = "^1.4.5"
 odd-models = "^2.0.23"
 oddrn-generator = "^0.1.70"
 funcy = "^1.17"
@@ -21,6 +20,8 @@ sqlalchemy = "^1.4.46"
 psycopg2 = "^2.9.5"
 loguru = "^0.6.0"
 typer = {extras = ["all"], version = "^0.7.0"}
+dbt-snowflake = "^1.4.1"
+snowflake-connector-python = "^2.8"
 
 [tool.poetry.group.dev.dependencies]
 black = "^22.12.0"
