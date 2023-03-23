@@ -11,7 +11,10 @@ from oddrn_generator import DbtGenerator
 from odd_dbt.context import DbtContext
 from odd_dbt.mapper.dbt_test import DbtTestMapper
 
-app = typer.Typer(short_help="Run dbt tests and inject results to ODD platform")
+app = typer.Typer(
+    short_help="Run dbt tests and inject results to ODD platform",
+    pretty_exceptions_show_locals=False,
+)
 
 
 @app.command()
