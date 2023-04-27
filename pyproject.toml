@@ -17,7 +17,6 @@ odd-models = "^2.0.24"
 oddrn-generator = "^0.1.70"
 funcy = "^1.17"
 sqlalchemy = "^1.4.46"
-psycopg2 = "^2.9.5"
 loguru = "^0.6.0"
 typer = {extras = ["all"], version = "^0.7.0"}
 dbt-snowflake = "^1.4.1"
