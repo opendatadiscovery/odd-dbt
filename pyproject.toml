@@ -21,6 +21,7 @@ psycopg2 = "^2.9.5"
 loguru = "^0.6.0"
 typer = {extras = ["all"], version = "^0.7.0"}
 dbt-snowflake = "^1.4.1"
+psycopg2-binary = "^2.9.6"
 
 [tool.poetry.group.dev.dependencies]
 black = "^22.12.0"
