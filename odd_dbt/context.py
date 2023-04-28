@@ -15,8 +15,9 @@ class DbtContext:
     def __init__(
         self,
         project_dir: Path,
-        profile_name: Optional[str] = None,
+        profile: Optional[str] = None,
         target: Optional[str] = None,
+        profiles_dir: Optional[Path] = None,
     ):
         try:
             project = Project.parse_obj(load_yaml(project_dir / "dbt_project.yml"))
@@ -34,9 +35,9 @@ class DbtContext:
 
             self.profile = self.parse_profile(
                 project=project,
-                profile_name=profile_name,
+                profile=profile,
                 target=target,
-                profiles_dir=run_results.profiles_dir,
+                profiles_dir=profiles_dir or run_results.profiles_dir,
             )
             self.run_results = run_results
             self.manifest = manifest
@@ -47,16 +48,16 @@ class DbtContext:
         self,
         project: Project,
         profiles_dir: Path,
-        profile_name: Optional[str],
+        profile: Optional[str],
         target: Optional[str],
     ) -> Profile:
-        profile_name = profile_name or project.profile
-        if not profile_name:
+        profile = profile or project.profile
+        if not profile:
             raise ValueError(f"Profile was not found.")
 
         profiles = load_yaml(profiles_dir / "profiles.yml")
 
-        if not (profile := profiles.get(profile_name)):
+        if not (profile := profiles.get(profile)):
             raise ValueError("Profile was not set")
 
         return Profile.from_dict(profile, target)

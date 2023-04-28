@@ -19,9 +19,10 @@ app = typer.Typer(
 
 @app.command()
 def test(
-    project_dir: Path = typer.Option(default=Path().cwd()),
+    project_dir: Path = typer.Option(default=Path.cwd()),
+    profiles_dir: Path = typer.Option(default=None),
     target: Optional[str] = typer.Option(default=None),
-    profile_name: Optional[str] = typer.Option(default=None),
+    profile: Optional[str] = typer.Option(default=None),
     platform_host: str = typer.Option(..., "--host", "-h", envvar="ODD_PLATFORM_HOST"),
     platform_token: str = typer.Option(
         ..., "--token", "-t", envvar="ODD_PLATFORM_TOKEN"
@@ -29,8 +30,28 @@ def test(
     dbt_host: str = typer.Option(default="localhost"),
 ):
     try:
-        logger.info(f"Run dbt process with {project_dir=}, {target=}, {profile_name=}")
-        process = subprocess.run(["dbt", "test", "--project-dir", project_dir])
+        logger.info(
+            f"Run dbt process with {project_dir=}, {profiles_dir=}, {target=}, {profile=}"
+        )
+
+        args = [
+            "dbt",
+            "test",
+        ]
+
+        if project_dir:
+            args.extend(["--project-dir", project_dir])
+
+        if profiles_dir:
+            args.extend(["--profiles-dir", profiles_dir])
+
+        if profile:
+            args.extend(["--profile", profile])
+
+        if target:
+            args.extend(["--target", target])
+
+        process = subprocess.run(args)
 
         if process.returncode >= 2:
             logger.error("Dbt test command failed")
@@ -42,7 +63,7 @@ def test(
             data_source_name="dbt", data_source_oddrn=generator.get_data_source_oddrn()
         )
 
-        context = DbtContext(project_dir=project_dir, profile_name=None, target=None)
+        context = DbtContext(project_dir=project_dir, profile=profile, target=target)
 
         logger.info("Got DBT test context. Start mapping...")
         data_entities = DbtTestMapper(context=context, generator=generator).map()
