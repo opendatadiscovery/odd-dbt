@@ -35,6 +35,7 @@ odd_dbt_test --host http://localhost:8080 --token <COLLECTOR_TOKEN>
 | Snowflake | 1.4.1 |
 | Redshift  | 1.4.0 |
 | Postgres  | 1.4.5 |
+| MSSQL     |       | 
 
 ## Requirements
 Library to inject Quality Tests entities requires presence of corresponding with them datasets entities in the platform.
