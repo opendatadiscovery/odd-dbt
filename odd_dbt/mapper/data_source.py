@@ -3,6 +3,7 @@ from typing import Type
 
 from oddrn_generator import (
     Generator,
+    MssqlGenerator,
     PostgresqlGenerator,
     RedshiftGenerator,
     SnowflakeGenerator,
@@ -15,6 +16,7 @@ class DataSource(Enum):
     SNOWFLAKE = "snowflake"
     REDSHIFT = "redshift"
     POSTGRES = "postgres"
+    MSSQL = "mssql"
 
 
 class GeneratorAdaptee:
@@ -42,6 +44,7 @@ DATA_SOURCE_GENERATORS: dict[DataSource, GeneratorAdaptee] = {
     DataSource.POSTGRES: GeneratorAdaptee(PostgresqlGenerator),
     DataSource.SNOWFLAKE: SnowflakeAdaptee(SnowflakeGenerator),
     DataSource.REDSHIFT: GeneratorAdaptee(RedshiftGenerator),
+    DataSource.MSSQL: GeneratorAdaptee(MssqlGenerator),
 }
 
 
