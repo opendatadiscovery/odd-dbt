@@ -36,7 +36,7 @@ class GeneratorAdaptee:
 
 class SnowflakeAdaptee(GeneratorAdaptee):
     def create(self, database: str, profile: Profile) -> Generator:
-        host = profile.account + ".snowflakecomputing.com"
+        host = f"{profile.account}.snowflakecomputing.com"
         return super()._create(database, host)
 
 

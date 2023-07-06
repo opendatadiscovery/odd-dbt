@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import Optional
 
+import pytz
+from dbt.contracts.graph.nodes import ParsedNode, TestNode
 from funcy.seqs import lmapcat
 from odd_models.models import (
     DataEntity,
@@ -18,6 +20,8 @@ from odd_dbt.mapper.data_source import DataSource, get_datasource_generator
 from odd_dbt.mapper.status_reason import StatusReason
 from odd_dbt.models import Result
 
+from ..logger import logger
+
 
 class DbtTestMapper:
     def __init__(self, context: DbtContext, generator: DbtGenerator) -> None:
@@ -25,7 +29,9 @@ class DbtTestMapper:
         self._generator = generator
 
     def map(self) -> DataEntityList:
-        data_entities = lmapcat(self.map_result, self._context.results)
+        data_entities = []
+        for result in self._context.results:
+            data_entities.extend(self.map_result(result))
 
         return DataEntityList(
             data_source_oddrn=self._generator.get_data_source_oddrn(),
@@ -40,11 +46,18 @@ class DbtTestMapper:
         assert invocation_id is not None
 
         start_time, end_time = result.execution_period
+
         test_node = self._context.manifest.nodes[test_id]
+        parsed_node: TestNode = ParsedNode._deserialize(test_node)
+
+        if parsed_node.resource_type != "test":
+            logger.warning(f"Node {test_id} is not a test node")
+            raise ValueError(f"Node {test_id} is not a test node")
 
         job = self.map_config(test_id)
+
         oddrn = self._generator.get_oddrn_by_path("runs", f"{test_id}.{invocation_id}")
-        status, status_reason = parse_status(result.status, test_node)
+        status, status_reason = parse_status(result.status, parsed_node)
 
         run = DataEntity(
             oddrn=oddrn,
@@ -53,8 +66,8 @@ class DbtTestMapper:
             owner=None,
             data_quality_test_run=DataQualityTestRun(
                 data_quality_test_oddrn=job.oddrn,
-                start_time=datetime_format(start_time) or datetime.now(),
-                end_time=datetime_format(end_time),
+                start_time=datetime_format(start_time) or datetime.now(tz=pytz.UTC),
+                end_time=datetime_format(end_time) or datetime.now(tz=pytz.UTC),
                 status=status,
                 status_reason=status_reason,
             ),
@@ -116,19 +129,19 @@ class DbtTestMapper:
 
 def datetime_format(date: Optional[str]) -> Optional[datetime]:
     if date:
-        return datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.%fZ").astimezone()
+        return datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.%fZ").astimezone(tz=pytz.utc)
 
     return None
 
 
 def parse_status(
-    test_status: str, test_node: dict
+    test_status: str, test_node: TestNode
 ) -> tuple[QualityRunStatus, Optional[str]]:
     status = QualityRunStatus.SUCCESS
     status_reason = None
 
-    if test_status == "fail":
+    if test_status in {"fail", "error"}:
         status = QualityRunStatus.FAILED
-        status_reason = StatusReason(test_node).get_reason()
+        status_reason = StatusReason().get_reason(test_node=test_node)
 
     return status, status_reason

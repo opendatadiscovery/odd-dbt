@@ -7,7 +7,7 @@ class Profile:
         self._config = config
 
     @classmethod
-    def from_dict(cls, profile: dict, target: str = None) -> "Profile":
+    def from_dict(cls, profile: dict, target: Optional[str] = None) -> "Profile":
         target = profile.get("target", target)
         if not target:
             raise ValueError("Target must be set")

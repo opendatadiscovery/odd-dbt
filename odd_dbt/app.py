@@ -5,10 +5,10 @@ from typing import Optional
 
 import typer
 from odd_models.api_client.v2.odd_api_client import Client
-from odd_models.logger import logger
 from oddrn_generator import DbtGenerator
 
 from odd_dbt.context import DbtContext
+from odd_dbt.logger import logger
 from odd_dbt.mapper.dbt_test import DbtTestMapper
 
 app = typer.Typer(
@@ -28,6 +28,7 @@ def test(
         ..., "--token", "-t", envvar="ODD_PLATFORM_TOKEN"
     ),
     dbt_host: str = typer.Option(default="localhost"),
+    create_data_source: bool = typer.Option(default=False),
 ):
     try:
         logger.info(
@@ -58,10 +59,16 @@ def test(
             raise typer.Exit(2)
 
         client = Client(host=platform_host, token=platform_token)
+
         generator = DbtGenerator(host_settings=dbt_host)
-        client.create_data_source(
-            data_source_name="dbt", data_source_oddrn=generator.get_data_source_oddrn()
-        )
+        if create_data_source:
+            logger.info(
+                f"Creating data source for dbt: ODDRN={generator.get_data_source_oddrn()}"
+            )
+            client.create_data_source(
+                data_source_name="dbt",
+                data_source_oddrn=generator.get_data_source_oddrn(),
+            )
 
         context = DbtContext(project_dir=project_dir, profile=profile, target=target)
 
