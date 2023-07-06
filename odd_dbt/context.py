@@ -6,6 +6,8 @@ from odd_dbt.models import Manifest, Profile, RunResults
 from odd_dbt.models.project import Project
 from odd_dbt.utils import load_json, load_yaml
 
+from .logger import logger
+
 
 class DbtContext:
     run_results: RunResults
@@ -42,6 +44,9 @@ class DbtContext:
             self.run_results = run_results
             self.manifest = manifest
         except Exception as e:
+            logger.debug(
+                f"Was run with {profiles_dir=}, {profile=}, {target=}, {project_dir=}"
+            )
             raise DbtInternalError(f"Failed to parse dbt context: {e}") from e
 
     def parse_profile(
@@ -52,8 +57,9 @@ class DbtContext:
         target: Optional[str],
     ) -> Profile:
         profile = profile or project.profile
+
         if not profile:
-            raise ValueError(f"Profile was not found.")
+            raise ValueError("Profile was not found.")
 
         profiles = load_yaml(profiles_dir / "profiles.yml")
 
