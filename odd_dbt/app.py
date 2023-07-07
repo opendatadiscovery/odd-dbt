@@ -27,8 +27,10 @@ def test(
     platform_token: str = typer.Option(
         ..., "--token", "-t", envvar="ODD_PLATFORM_TOKEN"
     ),
+    dbt_data_source_oddrn: str = typer.Option(
+        default=None,
+    ),
     dbt_host: str = typer.Option(default="localhost"),
-    create_data_source: bool = typer.Option(default=False),
 ):
     try:
         logger.info(
@@ -61,13 +63,14 @@ def test(
         client = Client(host=platform_host, token=platform_token)
 
         generator = DbtGenerator(host_settings=dbt_host)
-        if create_data_source:
-            logger.info(
-                f"Creating data source for dbt: ODDRN={generator.get_data_source_oddrn()}"
-            )
+
+        dbt_data_source_oddrn = dbt_data_source_oddrn
+        if not dbt_data_source_oddrn:
+            dbt_data_source_oddrn = generator.get_data_source_oddrn()
+            logger.info(f"Creating data source for dbt: ODDRN={dbt_data_source_oddrn}")
             client.create_data_source(
                 data_source_name="dbt",
-                data_source_oddrn=generator.get_data_source_oddrn(),
+                data_source_oddrn=dbt_data_source_oddrn,
             )
 
         context = DbtContext(project_dir=project_dir, profile=profile, target=target)
