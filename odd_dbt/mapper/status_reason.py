@@ -57,7 +57,7 @@ class GenericTestReason:
 
             return getattr(self, test_metadata.name)(test_node.test_metadata)
         except Exception as e:
-            raise CantParseReason("Cant parse GenericTestReason") from e
+            raise CantParseReason(f"Cant parse GenericTestReason. {e}") from e
 
     def unique(self, test_metadata: TestMetadata) -> str:
         column = get_column_name(test_metadata)

@@ -39,10 +39,13 @@ class DbtTestMapper:
                 logger.warning(f"Can't map result {result.unique_id}: {e}")
                 continue
 
-        return DataEntityList(
+        data_entities = DataEntityList(
             data_source_oddrn=self._generator.get_data_source_oddrn(),
             items=data_entities,
         )
+
+        logger.debug(data_entities.json(exclude_none=True))
+        return data_entities
 
     def map_result(
         self, result: Result, all_nodes
@@ -62,7 +65,7 @@ class DbtTestMapper:
 
         job = self.map_config(test_node, all_nodes)
 
-        oddrn = self._generator.get_oddrn_by_path("runs", f"{test_id}.{invocation_id}")
+        oddrn = self._generator.get_oddrn_by_path("runs", f"{invocation_id}")
         status, status_reason = parse_status(result.status, test_node)
 
         run = DataEntity(
@@ -85,11 +88,10 @@ class DbtTestMapper:
         self, test_node: TestNode, nodes: dict[str, ParsedNode]
     ) -> DataEntity:
         dataset_list = lkeep([*self.get_dataset_oddrn(test_node, nodes)])
-
         assert len(dataset_list) > 0
 
         self._generator.set_oddrn_paths(
-            **{"databases": test_node.database, "tests": test_node.unique_id}
+            **{"databases": test_node.database, "tests": test_node.alias}
         )
 
         return DataEntity(
@@ -100,7 +102,9 @@ class DbtTestMapper:
             data_quality_test=DataQualityTest(
                 suite_name=test_node.name,
                 dataset_list=dataset_list,
-                expectation=DataQualityTestExpectation(type=test_node.alias),
+                expectation=DataQualityTestExpectation(
+                    type=test_node.test_metadata.name
+                ),
             ),
         )
 
@@ -126,6 +130,7 @@ class DbtTestMapper:
                 generator.set_oddrn_paths(**{"schemas": model.schema})
                 yield generator.get_oddrn_by_path(path, name)
         elif test_node.test_node_type == "singular":
+            # We don't supput it because it doesn't contains test_metadata
             raise NotImplementedError("Singular test nodes are not supported yet")
         else:
             raise NotImplementedError(
