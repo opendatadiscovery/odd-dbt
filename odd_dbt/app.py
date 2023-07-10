@@ -32,7 +32,7 @@ def test(
     ),
     dbt_host: str = typer.Option(default="localhost"),
 ):
-    logger.info("Start dbt test process. Version: 0.1.8")
+    logger.info("Start dbt test process. Version: 0.1.9")
     try:
         logger.info(
             f"Run dbt process with {project_dir=}, {profiles_dir=}, {target=}, {profile=}"
