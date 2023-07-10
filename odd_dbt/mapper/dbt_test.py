@@ -130,7 +130,7 @@ class DbtTestMapper:
                 generator.set_oddrn_paths(**{"schemas": model.schema})
                 yield generator.get_oddrn_by_path(path, name)
         elif test_node.test_node_type == "singular":
-            # We don't supput it because it doesn't contains test_metadata
+            # We don't support it because it doesn't contains test_metadata
             raise NotImplementedError("Singular test nodes are not supported yet")
         else:
             raise NotImplementedError(

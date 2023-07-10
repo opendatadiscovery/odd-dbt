@@ -88,7 +88,9 @@ class GenericTestReason:
         return f"Each value in the {column} in the {model} should exists as an {ref_field} in the {ref_model}"
 
     def expression_is_true(self, test_metadata: TestMetadata) -> str:
-        expression = get_expression(test_metadata)
+        expression = get_expression(test_metadata) or "Unknown expression"
+        if len(expression) > 200:
+            expression = f"{expression[:200]}..."
         return f"{expression=} is not true"
 
     def at_least_one(self, test_metadata: TestMetadata) -> str:
@@ -105,8 +107,11 @@ class GenericTestReason:
     def equality(self, test_metadata: TestMetadata) -> str:
         model = get_model_name(test_metadata)
         compare_model = parse_model_name(get_compare_model(test_metadata))
-        compare_column = get_compare_column(test_metadata)
-        return f"{model} columns {','.join(compare_column)} are not equal with {compare_model=}"
+        compare_column = get_compare_column(test_metadata) or []
+        columns = ",".join(compare_column)
+        if len(columns) > 200:
+            columns = f"{columns[:200]}..."
+        return f"{model} columns {columns} are not equal with {compare_model=}"
 
     def not_constant(self, test_metadata: TestMetadata) -> str:
         return f"{get_column_name(test_metadata)} is constant"
@@ -125,7 +130,10 @@ class GenericTestReason:
         return f"{column=} in {model=} with {from_condition} is not related to {target_column=} in {target_model=} with {to_condition=}"
 
     def unique_combination_of_columns(self, test_metadata: TestMetadata) -> str:
-        return f"Combination of {','.join(test_metadata.kwargs.get('combination_of_columns', []))} is not unique"
+        columns = test_metadata.kwargs.get("combination_of_columns", [])
+        if len(columns) > 200:
+            columns = f"{columns[:200]}..."
+        return f"Combination of {columns} is not unique"
 
 
 class SingularTestReason:
