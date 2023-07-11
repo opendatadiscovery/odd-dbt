@@ -17,6 +17,7 @@ from oddrn_generator import DbtGenerator
 
 from odd_dbt.context import DbtContext
 from odd_dbt.mapper.data_source import DataSource, get_datasource_generator
+from odd_dbt.mapper.metadata import get_metadata
 from odd_dbt.mapper.status_reason import StatusReason
 from odd_dbt.models import Result
 
@@ -68,6 +69,10 @@ class DbtTestMapper:
         oddrn = self._generator.get_oddrn_by_path("runs", f"{invocation_id}")
         status, status_reason = parse_status(result.status, test_node)
 
+        name = test_node.name
+        if len(name) > 120:
+            name = test_node.alias
+
         run = DataEntity(
             oddrn=oddrn,
             name=test_id,
@@ -90,15 +95,20 @@ class DbtTestMapper:
         dataset_list = lkeep([*self.get_dataset_oddrn(test_node, nodes)])
         assert len(dataset_list) > 0
 
+        name = test_node.name
+        if len(name) > 120:
+            name = test_node.alias
+
         self._generator.set_oddrn_paths(
-            **{"databases": test_node.database, "tests": test_node.alias}
+            **{"databases": test_node.database, "tests": name}
         )
 
         return DataEntity(
             oddrn=self._generator.get_oddrn_by_path("tests"),
             owner=None,
-            name=f"{test_node.name}",
+            name=name,
             type=DataEntityType.JOB,
+            metadata=[get_metadata(test_node)],
             data_quality_test=DataQualityTest(
                 suite_name=test_node.name,
                 dataset_list=dataset_list,
