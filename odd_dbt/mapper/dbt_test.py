@@ -70,12 +70,12 @@ class DbtTestMapper:
         status, status_reason = parse_status(result.status, test_node)
 
         name = test_node.name
-        if len(name) > 120:
+        if len(name) > 250:
             name = test_node.alias
 
         run = DataEntity(
             oddrn=oddrn,
-            name=test_id,
+            name=name,
             type=DataEntityType.JOB_RUN,
             owner=None,
             data_quality_test_run=DataQualityTestRun(
