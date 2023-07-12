@@ -25,3 +25,7 @@ class Result:
     @property
     def status(self) -> str:
         return self._result["status"]
+
+    @property
+    def status_reason(self) -> Optional[str]:
+        return self._result.get("message")

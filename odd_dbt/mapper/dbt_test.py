@@ -67,7 +67,7 @@ class DbtTestMapper:
         job = self.map_config(test_node, all_nodes)
 
         oddrn = self._generator.get_oddrn_by_path("runs", f"{invocation_id}")
-        status, status_reason = parse_status(result.status, test_node)
+        status, status_reason = parse_status(result, test_node)
 
         name = test_node.name
         if len(name) > 250:
@@ -156,13 +156,19 @@ def datetime_format(date: Optional[str]) -> Optional[datetime]:
 
 
 def parse_status(
-    test_status: str, test_node: TestNode
+    result: Result, test_node: TestNode
 ) -> tuple[QualityRunStatus, Optional[str]]:
     status = QualityRunStatus.SUCCESS
     status_reason = None
 
-    if test_status in {"fail", "error"}:
+    if result.status in {"fail", "error"}:
         status = QualityRunStatus.FAILED
+
+    if result.status == "error":
+        status_reason = result.status_reason or "Error during test execution"
+
+    if result.status == "fail":
+        print(result.status_reason)
         status_reason = StatusReason().get_reason(test_node=test_node)
 
     return status, status_reason
