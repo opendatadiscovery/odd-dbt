@@ -16,7 +16,7 @@ from odd_models.models import (
 from oddrn_generator import DbtGenerator
 
 from odd_dbt.context import DbtContext
-from odd_dbt.mapper.data_source import DataSource, get_datasource_generator
+from odd_dbt.mapper.data_source import get_generator
 from odd_dbt.mapper.metadata import get_metadata
 from odd_dbt.mapper.status_reason import StatusReason
 from odd_dbt.models import Result
@@ -121,24 +121,11 @@ class DbtTestMapper:
     def get_dataset_oddrn(
         self, test_node: TestNode, nodes: dict[str, ParsedNode]
     ) -> Iterable[Optional[str]]:
-        data_source = DataSource(self._context.profile.type)
-
         if test_node.test_node_type == "generic":
             for model_id in test_node.depends_on_nodes:
                 model = nodes[model_id]
-                name = model.name
+                yield get_generator(profile=self._context.profile).get_oddrn_for(model)
 
-                if data_source == DataSource.SNOWFLAKE:
-                    name = name.upper()
-
-                path = "views" if model.config.materialized == "view" else "tables"
-                generator = get_datasource_generator(
-                    data_source=data_source,
-                    database=model.database,
-                    profile=self._context.profile,
-                )
-                generator.set_oddrn_paths(**{"schemas": model.schema})
-                yield generator.get_oddrn_by_path(path, name)
         elif test_node.test_node_type == "singular":
             # We don't support it because it doesn't contains test_metadata
             raise NotImplementedError("Singular test nodes are not supported yet")

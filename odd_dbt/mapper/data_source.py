@@ -1,6 +1,7 @@
 from enum import Enum
-from typing import Type
+from typing import Optional, Type
 
+from dbt.contracts.graph.nodes import ModelNode
 from oddrn_generator import (
     Generator,
     MssqlGenerator,
@@ -9,51 +10,56 @@ from oddrn_generator import (
     SnowflakeGenerator,
 )
 
-from odd_dbt.models import Profile
+from odd_dbt.models.profile import DataSourceType, Profile
 
 
-class DataSource(Enum):
-    SNOWFLAKE = "snowflake"
-    REDSHIFT = "redshift"
-    POSTGRES = "postgres"
-    MSSQL = "mssql"
+class GeneratorAdapter:
+    def __init__(self, generator_cls: Type[Generator], profile: Profile) -> None:
+        self.generator_cls = generator_cls
+        self.profile = profile
+
+    def get_oddrn_for(self, model: ModelNode, path: Optional[str] = None) -> str:
+        host = self.profile.get("host")
+        database = self.profile.get("database") or self.profile.get("dbname")
+        generator = self.generator_cls(host_settings=host, databases=database)
+
+        name = model.name
+        path = "views" if model.config.materialized == "view" else "tables"
+        generator.set_oddrn_paths(**{"schemas": model.schema})
+        return generator.get_oddrn_by_path(path, name)
 
 
-class GeneratorAdaptee:
-    def __init__(
-        self,
-        generator_cls: Type[Generator],
-    ) -> None:
-        self._generator_cls = generator_cls
+class SnowflakeGeneratorAdapter(GeneratorAdapter):
+    def get_oddrn_for(self, model: ModelNode, path: Optional[str] = None) -> str:
+        host = f"{self.profile.get('account').upper()}.snowflakecomputing.com"
+        database = (
+            self.profile.get("database").upper() or self.profile.get("dbname").upper()
+        )
 
-    def create(self, database: str, profile: Profile) -> Generator:
-        host = profile.host
-        return self._create(database, host)
-
-    def _create(self, database: str, host: str) -> Generator:
-        return self._generator_cls(host_settings=host, databases=database)
-
-
-class SnowflakeAdaptee(GeneratorAdaptee):
-    def create(self, database: str, profile: Profile) -> Generator:
-        host = f"{profile.account}.snowflakecomputing.com"
-        return super()._create(database, host)
+        generator = self.generator_cls(host_settings=host, databases=database)
+        name = model.name.upper()
+        path = "views" if model.config.materialized == "view" else "tables"
+        generator.set_oddrn_paths(**{"schemas": model.schema.upper()})
+        return generator.get_oddrn_by_path(path, name)
 
 
-DATA_SOURCE_GENERATORS: dict[DataSource, GeneratorAdaptee] = {
-    DataSource.POSTGRES: GeneratorAdaptee(PostgresqlGenerator),
-    DataSource.SNOWFLAKE: SnowflakeAdaptee(SnowflakeGenerator),
-    DataSource.REDSHIFT: GeneratorAdaptee(RedshiftGenerator),
-    DataSource.MSSQL: GeneratorAdaptee(MssqlGenerator),
-}
+def get_generator(profile: Profile) -> GeneratorAdapter:
+    DATA_SOURCE_GENERATORS: dict[
+        Enum, tuple[Type[GeneratorAdapter], Type[Generator], Profile]
+    ] = {
+        DataSourceType.POSTGRES: (GeneratorAdapter, PostgresqlGenerator, profile),
+        DataSourceType.SNOWFLAKE: (
+            SnowflakeGeneratorAdapter,
+            SnowflakeGenerator,
+            profile,
+        ),
+        DataSourceType.REDSHIFT: (GeneratorAdapter, RedshiftGenerator, profile),
+        DataSourceType.MSSQL: (GeneratorAdapter, MssqlGenerator, profile),
+    }
 
-
-def get_datasource_generator(
-    data_source: DataSource, database: str, profile: Profile
-) -> Generator:
-    if generator := DATA_SOURCE_GENERATORS.get(data_source):
-        return generator.create(database=database, profile=profile)
+    if generator_config := DATA_SOURCE_GENERATORS.get(profile.type):
+        return generator_config[0](generator_config[1], generator_config[2])
     else:
         raise ValueError(
-            f"Unknown {data_source=}. Available: {DATA_SOURCE_GENERATORS.keys()}"
+            f"Unknown profile type {profile.type}. Available: {DATA_SOURCE_GENERATORS.keys()}"
         )
