@@ -7,6 +7,7 @@ import typer
 from odd_models.api_client.v2.odd_api_client import Client
 from oddrn_generator import DbtGenerator
 
+from odd_dbt import get_version
 from odd_dbt.context import DbtContext
 from odd_dbt.logger import logger
 from odd_dbt.mapper.dbt_test import DbtTestMapper
@@ -32,7 +33,8 @@ def test(
     ),
     dbt_host: str = typer.Option(default="localhost"),
 ):
-    logger.info("Start dbt test process. Version: 0.1.21")
+    logger.info(f"Used OpenDataDiscovery dbt version: {get_version()}")
+    logger.info("Start dbt test process")
     try:
         logger.info(
             f"Run dbt process with {project_dir=}, {profiles_dir=}, {target=}, {profile=}"
