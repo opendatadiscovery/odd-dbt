@@ -24,15 +24,19 @@ psycopg2-binary = "^2.9.6"
 
 [tool.poetry.group.dev.dependencies]
 black = "^22.12.0"
-isort = "^5.11.4"
 pre-commit = "^3.1.0"
+ruff = "^0.0.278"
+
+[tool.ruff]
+ignore =["E501"]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]
+"logger.py" = ["F401"]
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
-
-[tool.isort]
-profile = "black"
 
 [tool.poetry.scripts]
 odd_dbt_test = "odd_dbt.app:app"
