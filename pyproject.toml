@@ -5,20 +5,26 @@ description = "OpenDataDiscovery Action for dbt"
 authors = ["Mateusz Kulas <mkulas@provectus.com>"]
 readme = "README.md"
 license = "Apache-2.0"
-keywords = ['Open Data Discovery', 'dbt', "Metadata", "Data Discovery", "Data Observability"]
-packages = [{include = "odd_dbt"}]
+keywords = [
+    'Open Data Discovery',
+    'dbt',
+    "Metadata",
+    "Data Discovery",
+    "Data Observability",
+]
+packages = [{ include = "odd_dbt" }]
 
 [tool.poetry.dependencies]
 python = "^3.9"
 dbt-core = "^1.4.5"
 dbt-redshift = "1.4.0"
 dbt-postgres = "1.4.5"
-odd-models = "^2.0.24"
-oddrn-generator = "^0.1.70"
-funcy = "^1.17"
+odd-models = "^2.0.31"
+oddrn-generator = "^0.1.92"
+funcy = "^2.0"
 sqlalchemy = "^1.4.46"
 loguru = "^0.6.0"
-typer = {extras = ["all"], version = "^0.7.0"}
+typer = { extras = ["all"], version = "^0.7.0" }
 dbt-snowflake = "^1.4.1"
 psycopg2-binary = "^2.9.6"
 
@@ -28,7 +34,7 @@ pre-commit = "^3.1.0"
 ruff = "^0.0.278"
 
 [tool.ruff]
-ignore =["E501"]
+ignore = ["E501"]
 
 [tool.ruff.per-file-ignores]
 "__init__.py" = ["F401"]
