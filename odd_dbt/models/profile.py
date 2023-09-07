@@ -3,6 +3,9 @@ from typing import Optional
 
 from dbt.config.renderer import ProfileRenderer
 
+from ..errors import ProfilerRenderError
+from ..logger import logger
+
 
 class DataSourceType(Enum):
     SNOWFLAKE = "snowflake"
@@ -14,7 +17,14 @@ class DataSourceType(Enum):
 class Profile:
     def __init__(self, **config) -> None:
         del config["password"]
-        self._config: dict[str, str] = ProfileRenderer().render_data(config)
+        try:
+            logger.debug("Try to render config.")
+            self._config: dict[str, str] = ProfileRenderer(
+                dict(MACRO_DEBUGGING=False)
+            ).render_data(config)
+        except Exception as e:
+            logger.debug(f"{config}")
+            raise ProfilerRenderError() from e
 
     @classmethod
     def from_dict(cls, profile: dict, target: Optional[str] = None) -> "Profile":

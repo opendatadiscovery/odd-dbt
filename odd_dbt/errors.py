@@ -5,3 +5,8 @@ class DbtInternalError(Exception):
 
 class CantParseReason(Exception):
     ...
+
+
+class ProfilerRenderError(Exception):
+    def __str__(self):
+        return "Couldn't parse profile config"

@@ -62,10 +62,8 @@ class DbtContext:
             raise ValueError("Profile was not found.")
 
         profiles = load_yaml(profiles_dir / "profiles.yml")
-
         if not (profile := profiles.get(profile)):
             raise ValueError("Profile was not set")
-
         return Profile.from_dict(profile, target)
 
     @property

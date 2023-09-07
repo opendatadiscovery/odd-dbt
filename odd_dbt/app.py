@@ -75,7 +75,6 @@ def test(
                 data_source_name="dbt",
                 data_source_oddrn=dbt_data_source_oddrn,
             )
-
         context = DbtContext(project_dir=project_dir, profile=profile, target=target)
 
         logger.info("Got DBT test context. Start mapping...")
