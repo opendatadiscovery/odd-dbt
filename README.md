@@ -27,15 +27,11 @@ How to create [collector token](https://docs.opendatadiscovery.org/configuration
 odd_dbt_test --host http://localhost:8080 --token <COLLECTOR_TOKEN>
 ```
 
-
-
 ## Supported data sources
-| Source    |       |
-| --------- | ----- |
-| Snowflake | 1.4.1 |
-| Redshift  | 1.4.0 |
-| Postgres  | 1.4.5 |
-| MSSQL     |       | 
+| Source    |        |
+| --------- | ------ |
+| Snowflake | ^1.4.1 |
+| Postgres  | ^1.4.5 |
 
 ## Requirements
 Library to inject Quality Tests entities requires presence of corresponding with them datasets entities in the platform.
@@ -56,7 +52,3 @@ Profiles inside the file looks different for each type of data source.
 **Snowflake** host_settings value is created from field `account`. Field value should be `<account_identifier>`
 For example the URL for an account uses the following format: `<account_identifier>`.snowflakecomputing.com
 Example Snowflake account identifier `hj1234.eu-central-1`.
-
-**Redshift** and **Postgres** host_settings are loaded from field `host` field.
-
-Example Redshift host: `redshift-cluster-example.123456789.eu-central-1.redshift.amazonaws.com`
