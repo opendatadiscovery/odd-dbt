@@ -1,3 +1,4 @@
+import traceback
 from datetime import datetime
 from typing import Iterable, Optional
 
@@ -15,12 +16,11 @@ from odd_models.models import (
 )
 from oddrn_generator import DbtGenerator
 
-from odd_dbt.context import DbtContext
-from odd_dbt.mapper.data_source import get_generator
+from odd_dbt.domain.context import DbtContext
+from odd_dbt.domain import Result
+from odd_dbt.mapper.generator import create_generator
 from odd_dbt.mapper.metadata import get_metadata
 from odd_dbt.mapper.status_reason import StatusReason
-from odd_dbt.models import Result
-
 from ..logger import logger
 
 
@@ -37,7 +37,8 @@ class DbtTestMapper:
             try:
                 data_entities.extend(self.map_result(result, all_nodes))
             except Exception as e:
-                logger.warning(f"Can't map result {result.unique_id}: {e}")
+                logger.warning(f"Can't map result {result.unique_id}: {str(e)}")
+                logger.debug(traceback.format_exc())
                 continue
 
         data_entities = DataEntityList(
@@ -124,8 +125,10 @@ class DbtTestMapper:
         if test_node.test_node_type == "generic":
             for model_id in test_node.depends_on_nodes:
                 model = nodes[model_id]
-                yield get_generator(profile=self._context.profile).get_oddrn_for(model)
-
+                yield create_generator(
+                    adapter_type=self._context.adapter_type,
+                    credentials=self._context.credentials,
+                ).get_oddrn_for(model)
         elif test_node.test_node_type == "singular":
             # We don't support it because it doesn't contains test_metadata
             raise NotImplementedError("Singular test nodes are not supported yet")

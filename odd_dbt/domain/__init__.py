@@ -1,5 +1,5 @@
 from .manifest import Manifest
-from .profile import Profile
+from .credentials import Credentials
 from .project import Project
 from .result import Result
 from .run_results import RunResults

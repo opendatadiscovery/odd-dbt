@@ -9,7 +9,7 @@ from dbt.contracts.graph.nodes import (
 )
 from funcy import partial
 
-from ..errors import CantParseReason
+from ..errors import ParsingReasonError
 from ..logger import logger
 
 
@@ -57,7 +57,7 @@ class GenericTestReason:
 
             return getattr(self, test_metadata.name)(test_node.test_metadata)
         except Exception as e:
-            raise CantParseReason(f"Cant parse GenericTestReason. {e}") from e
+            raise ParsingReasonError(f"Cant parse GenericTestReason. {e}") from e
 
     def unique(self, test_metadata: TestMetadata) -> str:
         column = get_column_name(test_metadata)
@@ -138,7 +138,7 @@ class GenericTestReason:
 
 class SingularTestReason:
     def get_reason(self, test_node: SingularTestNode) -> str:
-        raise CantParseReason("Reason for SingularTestNode not implemented yet.")
+        raise ParsingReasonError("Reason for SingularTestNode not implemented yet.")
 
 
 class StatusReason:
