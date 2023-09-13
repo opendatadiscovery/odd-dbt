@@ -4,7 +4,7 @@ from typing import Iterable, Optional
 
 import pytz
 from dbt.contracts.graph.nodes import ParsedNode, TestNode
-from funcy import lkeep, walk_values
+from funcy import lkeep
 from odd_models.models import (
     DataEntity,
     DataEntityList,
@@ -16,8 +16,8 @@ from odd_models.models import (
 )
 from oddrn_generator import DbtGenerator
 
-from odd_dbt.domain.context import DbtContext
 from odd_dbt.domain import Result
+from odd_dbt.domain.context import DbtContext
 from odd_dbt.mapper.generator import create_generator
 from odd_dbt.mapper.metadata import get_metadata
 from odd_dbt.mapper.status_reason import StatusReason
@@ -31,11 +31,12 @@ class DbtTestMapper:
 
     def map(self) -> DataEntityList:
         data_entities = []
-        all_nodes = walk_values(ParsedNode._deserialize, self._context.manifest.nodes)
 
         for result in self._context.results:
             try:
-                data_entities.extend(self.map_result(result, all_nodes))
+                data_entities.extend(
+                    self.map_result(result, self._context.manifest.nodes)
+                )
             except Exception as e:
                 logger.warning(f"Can't map result {result.unique_id}: {str(e)}")
                 logger.debug(traceback.format_exc())

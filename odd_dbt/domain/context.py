@@ -1,6 +1,6 @@
 from dbt.config.runtime import RuntimeConfig
 
-from odd_dbt.domain import Manifest, Credentials, RunResults
+from odd_dbt.domain import Manifest, Credentials, RunResults, Result
 from odd_dbt.domain.cli_args import CliArgs
 from odd_dbt.errors import DbtInternalError
 from odd_dbt.utils import load_json
@@ -38,7 +38,7 @@ class DbtContext:
         return RunResults(self.target_path / "run_results.json")
 
     @property
-    def results(self) -> list[dict]:
+    def results(self) -> list[Result]:
         return self.run_results.results
 
     @property

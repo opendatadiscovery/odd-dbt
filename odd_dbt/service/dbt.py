@@ -7,6 +7,11 @@ from odd_dbt import errors
 from odd_dbt.domain.cli_args import CliArgs, FlagsArgs
 from odd_dbt.domain.context import DbtContext
 from odd_dbt.logger import logger
+from odd_dbt import domain
+
+
+def collect_test_results(context: DbtContext) -> list[domain.Result]:
+    return context.results
 
 
 def run_tests(cli_args: CliArgs) -> None:
