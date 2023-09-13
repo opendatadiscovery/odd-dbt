@@ -1,54 +1,83 @@
 # OpenDataDiscovery dbt tests metadata collecting
+
 [![PyPI version](https://badge.fury.io/py/odd-dbt.svg)](https://badge.fury.io/py/odd-dbt)
 
-CLI tool helps automatically parse and ingest DBT test results to OpenDataDiscovery Platform.
-It can be used as separated CLI tool or within [ODD CLI](https://github.com/opendatadiscovery/odd-cli) package which provides some useful additional features.
+CLI tool helps run and ingest dbt test to platform.
 
-## Installation
-```pip install odd-dbt```
+It can be used as separated CLI tool or within [ODD CLI](https://github.com/opendatadiscovery/odd-cli) package which
+provides some useful additional features for working with OpenDataDiscovery.
 
-## Command options
-```
-╭─ Options ─────────────────────────────────────────────────────────────╮
-│    --project-dir                 PATH  [default: Path().cwd()odd-dbt] │
-│    --target                      TEXT  [default:None]                 │
-│    --profile-name                TEXT  [default:None]                 │
-│ *  --host    -h                  TEXT  [env var: ODD_PLATFORM_HOST]   │
-│ *  --token   -t                  TEXT  [env var: ODD_PLATFORM_TOKEN]  │
-│    --dbt-host                    TEXT  [default: localhost]           │
-│    --help                              Show this message and exit.    │
-╰───────────────────────────────────────────────────────────────────────╯
-```
+## Supported adapters
 
-
-## Command run example
-How to create [collector token](https://docs.opendatadiscovery.org/configuration-and-deployment/trylocally#create-collector-entity)?
-```bash
-odd_dbt_test --host http://localhost:8080 --token <COLLECTOR_TOKEN>
-```
-
-## Supported data sources
-| Source    |        |
-| --------- | ------ |
-| Snowflake | ^1.4.1 |
-| Postgres  | ^1.4.5 |
-
-## Requirements
-Library to inject Quality Tests entities requires presence of corresponding with them datasets entities in the platform.
-For example: if you want to inject data quality test of Snowflake table, you need to have entity of that table present in the platform.
-
-## Supported tests
-Library supports for basics tests provided by dbt.
-- `unique`: values in the column should be unique
-- `not_null`: values in the column should not contain null values
-- `accepted_values`: column should only contain values from list specified in the test config
-- `relationships`: each value in the select column of the model exists as a specified field in the reference table (also known as referential integrity)
-
-## ODDRN generation for datasets
-`host_settings` of ODDRN generators required for source datasets are loaded from `.dbt/profiles.yml`.
+| Adapter   | version |
+|-----------|---------|
+| Snowflake | ^1.6    |
+| Postgres  | ^1.6    |
 
 Profiles inside the file looks different for each type of data source.
 
 **Snowflake** host_settings value is created from field `account`. Field value should be `<account_identifier>`
 For example the URL for an account uses the following format: `<account_identifier>`.snowflakecomputing.com
 Example Snowflake account identifier `hj1234.eu-central-1`.
+
+## Supported tests types
+
+1. [x]  Generic tests
+2. [ ] Singular tests. Currently Singular tests are not supported.
+
+## Installation
+```pip install odd-dbt```
+
+## To see all available commands
+```
+odd_dbt_test --help
+```
+
+## Example
+For each command that involves sending information to OpenDataDiscovery platform exists set of env variables:
+1. `ODD_PLATFORM_HOST` - Where you platform is
+2. `ODD_PLATFORM_TOKEN` - Token for ingesting data to platform (How to create [token](https://docs.opendatadiscovery.org/configuration-and-deployment/trylocally#create-collector-entity)?)
+3. `DBT_DATA_SOURCE_ODDRN` - Unique oddrn string describes dbt source, i.e '//dbt/host/localhost'
+
+It is recommended to add them as ENV variables or provide as flags to each command
+```
+export ODD_PLATFORM_HOST=http://localhost:8080
+export ODD_PLATFORM_TOKEN=token***
+export DBT_DATA_SOURCE_ODDRN=//dbt/host/localhost
+```
+
+### Commands
+`create-datasource` - helps to register dbt as data source at OpenDataDiscovery platform. User later for ingesting metadata.
+```commandline
+odd_dbt_test create-datasource --name=my_local_dbt --dbt-host=localhost
+```
+
+`ingest-test` - Read results_run file under the target folder to parse and ingest metadata.
+```commandline
+odd_dbt_test ingest-test --profile=my_profile
+```
+
+`test` - Proxy command to `dbt test`, then reads results_run file under the target folder to parse and ingest metadata.
+```commandline
+odd_dbt_test test --profile=my_profile
+```
+
+### Run commands programmatically
+You could run that scrip to read, parse and ingest test results to the platform.
+```python
+# ingest_test_result.py
+from odd_dbt import config
+from odd_dbt.domain.cli_args import CliArgs
+from odd_dbt.service.dbt import get_context
+from odd_dbt.service.odd import ingest_entities
+from odd_dbt.mapper.test_results import DbtTestMapper
+
+cfg = config.Config() # All fields can be set manually or read from ENV variables
+client = config.create_odd_client(host=cfg.odd_platform_host, token=cfg.odd_platform_token)
+generator = config.create_dbt_generator_from_oddrn(oddrn=cfg.dbt_data_source_oddrn)
+
+cli_args = CliArgs.default()
+context = get_context(cli_args=cli_args)
+data_entities = DbtTestMapper(context=context, generator=generator).map()
+ingest_entities(data_entities, client)
+```

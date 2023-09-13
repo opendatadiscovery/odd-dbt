@@ -3,10 +3,13 @@ class DbtInternalError(Exception):
         super().__init__(original_message, *args)
 
 
-class CantParseReason(Exception):
+class ParsingReasonError(Exception):
     ...
 
 
-class ProfilerRenderError(Exception):
-    def __str__(self):
-        return "Couldn't parse profile config"
+class ProfileError(Exception):
+    ...
+
+
+class DbtTestCommandError(Exception):
+    ...
