@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Iterable, Optional
 
 import pytz
-from dbt.contracts.graph.nodes import ParsedNode, TestNode
+from dbt.contracts.graph.nodes import ParsedNode, TestNode, GenericTestNode
 from funcy import lkeep
 from odd_models.models import (
     DataEntity,
@@ -58,13 +58,15 @@ class DbtTestMapper:
 
         assert test_id is not None
         assert invocation_id is not None
-
         start_time, end_time = result.execution_period
-        test_node: TestNode = all_nodes[test_id]
+
+        generic_test_nodes = {
+            u: n for u, n in all_nodes.items() if isinstance(n, GenericTestNode)
+        }
+        test_node: TestNode = generic_test_nodes[test_id]
 
         if test_node.resource_type != "test":
-            logger.warning(f"Node {test_id} is not a test node")
-            raise ValueError(f"Node {test_id} is not a test node")
+            raise ValueError(f"Node {test_id} is not a generic test node")
 
         job = self.map_config(test_node, all_nodes)
 
