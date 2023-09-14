@@ -31,11 +31,15 @@ class DbtTestMapper:
 
     def map(self) -> DataEntityList:
         data_entities = []
+        all_nodes = self._context.manifest.nodes
+        generic_test_nodes = {
+            u: n for u, n in all_nodes.items() if isinstance(n, GenericTestNode)
+        }
 
         for result in self._context.results:
             try:
                 data_entities.extend(
-                    self.map_result(result, self._context.manifest.nodes)
+                    self.map_result(result, generic_test_nodes, all_nodes)
                 )
             except Exception as e:
                 logger.warning(f"Can't map result {result.unique_id}: {str(e)}")
@@ -51,7 +55,7 @@ class DbtTestMapper:
         return data_entities
 
     def map_result(
-        self, result: Result, all_nodes
+        self, result: Result, nodes: list[GenericTestNode], all_nodes: list[ParsedNode]
     ) -> Optional[tuple[DataEntity, DataEntity]]:
         test_id: str = result.unique_id
         invocation_id: str = self._context.invocation_id
@@ -60,13 +64,10 @@ class DbtTestMapper:
         assert invocation_id is not None
         start_time, end_time = result.execution_period
 
-        generic_test_nodes = {
-            u: n for u, n in all_nodes.items() if isinstance(n, GenericTestNode)
-        }
-        test_node: TestNode = generic_test_nodes[test_id]
+        test_node: TestNode = nodes.get(test_id)
 
-        if test_node.resource_type != "test":
-            raise ValueError(f"Node {test_id} is not a generic test node")
+        if not test_node:
+            raise KeyError(f"Could not find test node wit an id {test_id}")
 
         job = self.map_config(test_node, all_nodes)
 
