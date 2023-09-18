@@ -10,6 +10,7 @@ from odd_dbt import errors
 from odd_dbt import get_version
 from odd_dbt.logger import logger
 from odd_dbt.mapper.test_results import DbtTestMapper
+from odd_dbt.mapper.lineage import DbtLineageMapper
 from odd_dbt.libs import odd, dbt
 from odd_dbt.service import odd as odd_api
 from odd_dbt.service.dbt import run_tests, CliArgs
@@ -136,7 +137,7 @@ def ingest_lineage(
     client = config.create_odd_client(host=platform_host, token=platform_token)
     generator = odd.create_dbt_generator_from_oddrn(oddrn=dbt_data_source_oddrn)
 
-    data_entities = DbtTestMapper(context=context, generator=generator).map()
+    data_entities = DbtLineageMapper(context=context, generator=generator).map()
     odd_api.ingest_entities(data_entities, client)
 
 
