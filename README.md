@@ -64,18 +64,19 @@ odd_dbt_test test --profile=my_profile
 
 ### Run commands programmatically
 You could run that scrip to read, parse and ingest test results to the platform.
+
 ```python
 # ingest_test_result.py
 
 from odd_dbt import config
 from odd_dbt.domain.cli_args import CliArgs
-from odd_dbt.lib.dbt import get_context
-from odd_dbt.lib.odd import create_dbt_generator_from_oddrn
+from odd_dbt.libs.dbt import get_context
+from odd_dbt.libs.odd import create_dbt_generator_from_oddrn
 from odd_dbt.service.odd import ingest_entities
 from odd_dbt.mapper.test_results import DbtTestMapper
 from odd_dbt.mapper.lineage import DbtLineageMapper
 
-cfg = config.Config() # All fields can be set manually or read from ENV variables
+cfg = config.Config()  # All fields can be set manually or read from ENV variables
 client = config.create_odd_client(host=cfg.odd_platform_host, token=cfg.odd_platform_token)
 generator = create_dbt_generator_from_oddrn(oddrn=cfg.dbt_data_source_oddrn)
 

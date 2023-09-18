@@ -2,7 +2,7 @@ import funcy
 from odd_models import DataEntityList
 from odd_models.api_client.v2.odd_api_client import Client
 
-from odd_dbt.lib.odd import create_dbt_generator
+from odd_dbt.libs.odd import create_dbt_generator
 from odd_dbt.logger import logger
 
 

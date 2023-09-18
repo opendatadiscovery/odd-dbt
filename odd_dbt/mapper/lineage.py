@@ -13,7 +13,7 @@ from oddrn_generator import DbtGenerator
 
 from odd_dbt import logger
 from odd_dbt.domain.context import DbtContext
-from odd_dbt.lib.dbt import is_a_model_node
+from odd_dbt.libs.dbt import is_a_model_node
 from odd_dbt.mapper.generator import create_generator
 from odd_dbt.mapper.metadata import get_model_metadata
 
