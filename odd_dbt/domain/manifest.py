@@ -1,8 +1,9 @@
 from pathlib import Path
 
-from odd_dbt.utils import load_json
-from funcy import walk_values
 from dbt.contracts.graph.nodes import ParsedNode
+from funcy import walk_values
+
+from odd_dbt.utils import load_json
 
 
 class Manifest:
@@ -10,5 +11,5 @@ class Manifest:
         self._manifest = load_json(file)
 
     @property
-    def nodes(self) -> list[ParsedNode]:
+    def nodes(self) -> dict[str, ParsedNode]:
         return walk_values(ParsedNode._deserialize, self._manifest["nodes"])

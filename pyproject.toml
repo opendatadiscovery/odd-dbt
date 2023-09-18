@@ -17,7 +17,7 @@ packages = [{ include = "odd_dbt" }]
 [tool.poetry.dependencies]
 python = "^3.9"
 odd-models = "^2.0.31"
-oddrn-generator = "^0.1.93"
+oddrn-generator = "^0.1.94"
 funcy = "^2.0"
 sqlalchemy = "^1.4.46"
 loguru = "^0.6.0"

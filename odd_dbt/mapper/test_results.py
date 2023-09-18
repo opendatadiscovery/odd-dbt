@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Iterable, Optional
 
 import pytz
-from dbt.contracts.graph.nodes import ParsedNode, TestNode, GenericTestNode
+from dbt.contracts.graph.nodes import GenericTestNode, ParsedNode, TestNode
 from funcy import lkeep
 from odd_models.models import (
     DataEntity,
@@ -21,6 +21,7 @@ from odd_dbt.domain.context import DbtContext
 from odd_dbt.mapper.generator import create_generator
 from odd_dbt.mapper.metadata import get_metadata
 from odd_dbt.mapper.status_reason import StatusReason
+from odd_dbt.mapper.helpers import datetime_format
 from ..logger import logger
 
 
@@ -140,13 +141,6 @@ class DbtTestMapper:
             raise NotImplementedError(
                 f"Unknown test node type: {test_node.test_node_type}"
             )
-
-
-def datetime_format(date: Optional[str]) -> Optional[datetime]:
-    if date:
-        return datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.%fZ").astimezone(tz=pytz.utc)
-
-    return None
 
 
 def parse_status(

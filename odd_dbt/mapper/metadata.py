@@ -1,4 +1,4 @@
-from dbt.contracts.graph.nodes import TestNode
+from dbt.contracts.graph.nodes import ModelNode, TestNode
 from odd_models import MetadataExtension
 
 
@@ -24,3 +24,8 @@ def get_metadata(test_node: TestNode) -> MetadataExtension:
 
     schema_url = "https://raw.githubusercontent.com/opendatadiscovery/opendatadiscovery-specification/main/specification/extensions/dbt.json#/definitions/DataQualityTestRun"
     return MetadataExtension(schema_url=schema_url, metadata=metadata)
+
+
+def get_model_metadata(model_node: ModelNode) -> MetadataExtension:
+    schema_url = "https://raw.githubusercontent.com/opendatadiscovery/opendatadiscovery-specification/main/specification/extensions/dbt.json#/definitions/DataTransformer"
+    return MetadataExtension(schema_url=schema_url, metadata=model_node.to_dict())

@@ -1,4 +1,5 @@
 from dbt.config.runtime import RuntimeConfig
+from dbt.contracts.graph.nodes import ParsedNode
 
 from odd_dbt.domain import Manifest, Credentials, RunResults, Result
 from odd_dbt.domain.cli_args import CliArgs
@@ -44,3 +45,7 @@ class DbtContext:
     @property
     def invocation_id(self) -> str:
         return self.run_results.invocation_id
+
+    @property
+    def nodes(self) -> dict[str, ParsedNode]:
+        return self.manifest.nodes
