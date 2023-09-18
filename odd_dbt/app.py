@@ -10,7 +10,7 @@ from odd_dbt import errors
 from odd_dbt import get_version
 from odd_dbt.logger import logger
 from odd_dbt.mapper.test_results import DbtTestMapper
-from odd_dbt.lib import odd, dbt
+from odd_dbt.libs import odd, dbt
 from odd_dbt.service import odd as odd_api
 from odd_dbt.service.dbt import run_tests, CliArgs
 
