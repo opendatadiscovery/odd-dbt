@@ -2,6 +2,7 @@ from pathlib import Path
 
 from dbt.contracts.graph.nodes import ParsedNode, GenericTestNode
 from funcy import walk_values, select_values
+
 from odd_dbt.domain.source import Source
 from odd_dbt.utils import load_json
 

@@ -1,4 +1,4 @@
-from odd_models import DataEntity, DataTransformer
+from odd_models import DataEntity, DataTransformer, DataSet
 
 
 class ModelEntity(DataEntity):
@@ -17,3 +17,9 @@ class ModelEntity(DataEntity):
     def add_output(self, oddrn: str) -> None:
         if oddrn not in self.data_transformer.outputs:
             self.data_transformer.outputs.append(oddrn)
+
+
+class SeedEntity(DataEntity):
+    def __init__(self, **data: dict):
+        super().__init__(**data)
+        self.dataset = DataSet(field_list=[])

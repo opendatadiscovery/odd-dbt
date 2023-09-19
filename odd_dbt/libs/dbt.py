@@ -1,6 +1,6 @@
 import dbt.events.functions as events_functions
 from dbt import flags
-from dbt.contracts.graph.nodes import ParsedNode, ModelNode
+from dbt.contracts.graph.nodes import ParsedNode, ModelNode, SeedNode
 
 from odd_dbt.domain.cli_args import CliArgs, FlagsArgs
 from odd_dbt.domain.context import DbtContext
@@ -26,3 +26,7 @@ def get_context(cli_args: CliArgs) -> DbtContext:
 
 def is_a_model_node(node: ParsedNode) -> bool:
     return isinstance(node, ModelNode)
+
+
+def is_a_seed_node(node: SeedNode) -> bool:
+    return isinstance(node, SeedNode)
