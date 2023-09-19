@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from dbt.contracts.graph.nodes import ParsedNode
-from funcy import walk_values
+from dbt.contracts.graph.nodes import ParsedNode, GenericTestNode
+from funcy import walk_values, select_values
 from odd_dbt.domain.source import Source
 from odd_dbt.utils import load_json
 
@@ -17,3 +17,7 @@ class Manifest:
     @property
     def sources(self) -> dict[str, Source]:
         return walk_values(Source._deserialize, self._manifest["sources"])
+
+    @property
+    def generic_tests(self) -> dict[str, GenericTestNode]:
+        return select_values(lambda x: isinstance(x, GenericTestNode), self.nodes)

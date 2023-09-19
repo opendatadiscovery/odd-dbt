@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Iterable, Optional
 
 import pytz
-from dbt.contracts.graph.nodes import GenericTestNode, TestNode
+from dbt.contracts.graph.nodes import GenericTestNode, TestNode, SeedNode
 from funcy import lkeep
 from odd_dbt.domain import Result
 from odd_dbt.domain.context import DbtContext
@@ -22,7 +22,7 @@ from odd_models.models import (
 )
 from oddrn_generator import DbtGenerator
 
-from ..logger import logger
+from odd_dbt.logger import logger
 
 
 class DbtTestMapper:
@@ -32,10 +32,7 @@ class DbtTestMapper:
 
     def map(self) -> DataEntityList:
         data_entities = []
-        nodes = self._context.manifest.nodes
-        generic_test_nodes = {
-            u: n for u, n in nodes.items() if isinstance(n, GenericTestNode)
-        }
+        generic_test_nodes = self._context.manifest.generic_tests
 
         for result in self._context.results:
             try:
@@ -54,16 +51,16 @@ class DbtTestMapper:
         return data_entities
 
     def map_result(
-        self, result: Result, nodes: list[GenericTestNode]
+        self, result: Result, test_nodes: list[GenericTestNode]
     ) -> Optional[tuple[DataEntity, DataEntity]]:
         test_id: str = result.unique_id
         invocation_id: str = self._context.invocation_id
 
         assert test_id is not None
         assert invocation_id is not None
-        start_time, end_time = result.execution_period
 
-        test_node: TestNode = nodes.get(test_id)
+        start_time, end_time = result.execution_period
+        test_node: TestNode = test_nodes.get(test_id)
 
         if not test_node:
             raise KeyError(f"Could not find test node with an id {test_id}")
@@ -129,12 +126,24 @@ class DbtTestMapper:
         sources = self._context.manifest.sources
 
         if test_node.test_node_type == "generic":
-            for model_id in test_node.depends_on_nodes:
-                if model := nodes.get(model_id, sources.get(model_id)):
+            dependencies = test_node.depends_on_nodes
+
+            for model_id in dependencies:
+                model = nodes.get(model_id)
+
+                if node := nodes.get(model_id):
+                    if model.config.materialized == "seed":
+                        yield seed_node_oddrn(node, self._generator)
+                    else:
+                        yield create_generator(
+                            adapter_type=self._context.adapter_type,
+                            credentials=self._context.credentials,
+                        ).get_oddrn_for(node)
+                elif node := sources.get(model_id):
                     yield create_generator(
                         adapter_type=self._context.adapter_type,
                         credentials=self._context.credentials,
-                    ).get_oddrn_for(model)
+                    ).get_oddrn_for(node)
                 else:
                     raise KeyError(f"Could not find model/source with an id {model_id}")
         elif test_node.test_node_type == "singular":
@@ -144,6 +153,10 @@ class DbtTestMapper:
             raise NotImplementedError(
                 f"Unknown test node type: {test_node.test_node_type}"
             )
+
+
+def seed_node_oddrn(node: SeedNode, generator: DbtGenerator) -> Optional[str]:
+    return generator.get_data_source_oddrn() + f"/seeds/{node.unique_id}"
 
 
 def parse_status(
