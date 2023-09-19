@@ -26,3 +26,4 @@ def get_context(cli_args: CliArgs) -> DbtContext:
 
 def is_a_model_node(node: ParsedNode) -> bool:
     return isinstance(node, ModelNode)
+

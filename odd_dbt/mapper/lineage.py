@@ -4,13 +4,11 @@ from typing import Optional
 from dbt.contracts.graph.nodes import ModelNode
 from funcy import compact, select_values, silent, walk_values
 from odd_models.models import (
-    DataEntity,
     DataEntityList,
     DataEntityType,
-    DataTransformer,
 )
 from oddrn_generator import DbtGenerator
-
+from odd_dbt.domain.model import ModelEntity
 from odd_dbt import logger
 from odd_dbt.domain.context import DbtContext
 from odd_dbt.libs.dbt import is_a_model_node
@@ -25,36 +23,42 @@ class DbtLineageMapper:
 
     def map(self) -> DataEntityList:
         model_nodes = select_values(is_a_model_node, self._context.nodes)
-        mapped_nodes = compact(walk_values(silent(self.map_model_node), model_nodes))
+        source_nodes = self._context.manifest.sources
+        print(source_nodes)
 
-        for model_id, data_entity in mapped_nodes.items():
+        model_entities: dict[str, ModelEntity] = compact(
+            walk_values(silent(self.map_model_node), model_nodes)
+        )
+
+        for model_id, entity in model_entities.items():
             depends_on = model_nodes[model_id].depends_on.nodes
 
             for dep_id in depends_on:
-                if node := mapped_nodes.get(dep_id):
-                    data_entity.data_transformer.inputs.append(node.oddrn)
+                if depend_on_entity := model_entities.get(dep_id):
+                    entity.add_input(depend_on_entity.oddrn)
+                    depend_on_entity.add_output(entity.oddrn)
                 else:
                     logger.warning(f"Can't find node {dep_id}")
 
         return DataEntityList(
             data_source_oddrn=self._generator.get_data_source_oddrn(),
-            items=list(mapped_nodes.values()),
+            items=list(model_entities.values()),
         )
 
-    def map_model_node(self, model_node: ModelNode) -> Optional[DataEntity]:
+    def map_model_node(self, model_node: ModelNode) -> Optional[ModelEntity]:
         try:
             self._generator.set_oddrn_paths(models=model_node.unique_id)
-            return DataEntity(
+            model_entity = ModelEntity(
                 name=model_node.unique_id,
                 oddrn=self._generator.get_oddrn_by_path("models"),
                 owner=None,
                 type=DataEntityType.JOB,
                 metadata=[get_model_metadata(model_node)],
-                data_transformer=DataTransformer(
-                    inputs=[],
-                    outputs=[get_materialized_entity_oddrn(model_node, self._context)],
-                ),
             )
+            model_entity.add_output(
+                get_materialized_entity_oddrn(model_node, self._context)
+            )
+            return model_entity
         except Exception as e:
             logger.warning(f"Can't map model {model_node.unique_id}: {str(e)}")
             logger.debug(traceback.format_exc())

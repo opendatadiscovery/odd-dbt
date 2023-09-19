@@ -3,8 +3,14 @@ from datetime import datetime
 from typing import Iterable, Optional
 
 import pytz
-from dbt.contracts.graph.nodes import GenericTestNode, ParsedNode, TestNode
+from dbt.contracts.graph.nodes import GenericTestNode, TestNode
 from funcy import lkeep
+from odd_dbt.domain import Result
+from odd_dbt.domain.context import DbtContext
+from odd_dbt.mapper.generator import create_generator
+from odd_dbt.mapper.helpers import datetime_format
+from odd_dbt.mapper.metadata import get_metadata
+from odd_dbt.mapper.status_reason import StatusReason
 from odd_models.models import (
     DataEntity,
     DataEntityList,
@@ -16,12 +22,6 @@ from odd_models.models import (
 )
 from oddrn_generator import DbtGenerator
 
-from odd_dbt.domain import Result
-from odd_dbt.domain.context import DbtContext
-from odd_dbt.mapper.generator import create_generator
-from odd_dbt.mapper.metadata import get_metadata
-from odd_dbt.mapper.status_reason import StatusReason
-from odd_dbt.mapper.helpers import datetime_format
 from ..logger import logger
 
 
@@ -32,16 +32,14 @@ class DbtTestMapper:
 
     def map(self) -> DataEntityList:
         data_entities = []
-        all_nodes = self._context.manifest.nodes
+        nodes = self._context.manifest.nodes
         generic_test_nodes = {
-            u: n for u, n in all_nodes.items() if isinstance(n, GenericTestNode)
+            u: n for u, n in nodes.items() if isinstance(n, GenericTestNode)
         }
 
         for result in self._context.results:
             try:
-                data_entities.extend(
-                    self.map_result(result, generic_test_nodes, all_nodes)
-                )
+                data_entities.extend(self.map_result(result, generic_test_nodes))
             except Exception as e:
                 logger.warning(f"Can't map result {result.unique_id}: {str(e)}")
                 logger.debug(traceback.format_exc())
@@ -56,7 +54,7 @@ class DbtTestMapper:
         return data_entities
 
     def map_result(
-        self, result: Result, nodes: list[GenericTestNode], all_nodes: list[ParsedNode]
+        self, result: Result, nodes: list[GenericTestNode]
     ) -> Optional[tuple[DataEntity, DataEntity]]:
         test_id: str = result.unique_id
         invocation_id: str = self._context.invocation_id
@@ -68,9 +66,9 @@ class DbtTestMapper:
         test_node: TestNode = nodes.get(test_id)
 
         if not test_node:
-            raise KeyError(f"Could not find test node wit an id {test_id}")
+            raise KeyError(f"Could not find test node with an id {test_id}")
 
-        job = self.map_config(test_node, all_nodes)
+        job = self.map_config(test_node)
 
         oddrn = self._generator.get_oddrn_by_path("runs", f"{invocation_id}")
         status, status_reason = parse_status(result, test_node)
@@ -95,13 +93,15 @@ class DbtTestMapper:
 
         return job, run
 
-    def map_config(
-        self, test_node: TestNode, nodes: dict[str, ParsedNode]
-    ) -> DataEntity:
-        dataset_list = lkeep([*self.get_dataset_oddrn(test_node, nodes)])
-        assert len(dataset_list) > 0
+    def map_config(self, test_node: TestNode) -> DataEntity:
+        dataset_list = lkeep([*self.get_dataset_oddrn(test_node)])
+        if len(dataset_list) < 1:
+            raise ValueError(
+                "Dataset list is empty. Each test should have at least one dataset"
+            )
 
         name = test_node.name
+
         if len(name) > 120:
             name = test_node.alias
 
@@ -124,16 +124,19 @@ class DbtTestMapper:
             ),
         )
 
-    def get_dataset_oddrn(
-        self, test_node: TestNode, nodes: dict[str, ParsedNode]
-    ) -> Iterable[Optional[str]]:
+    def get_dataset_oddrn(self, test_node: TestNode) -> Iterable[Optional[str]]:
+        nodes = self._context.manifest.nodes
+        sources = self._context.manifest.sources
+
         if test_node.test_node_type == "generic":
             for model_id in test_node.depends_on_nodes:
-                model = nodes[model_id]
-                yield create_generator(
-                    adapter_type=self._context.adapter_type,
-                    credentials=self._context.credentials,
-                ).get_oddrn_for(model)
+                if model := nodes.get(model_id, sources.get(model_id)):
+                    yield create_generator(
+                        adapter_type=self._context.adapter_type,
+                        credentials=self._context.credentials,
+                    ).get_oddrn_for(model)
+                else:
+                    raise KeyError(f"Could not find model/source with an id {model_id}")
         elif test_node.test_node_type == "singular":
             # We don't support it because it doesn't contains test_metadata
             raise NotImplementedError("Singular test nodes are not supported yet")

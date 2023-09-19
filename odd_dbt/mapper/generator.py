@@ -1,16 +1,36 @@
-from typing import Optional, Type, Protocol
+import abc
+from functools import singledispatchmethod
+from typing import Type, Protocol
 
 from dbt.contracts.graph.nodes import ModelNode
 from oddrn_generator import generators as odd
 
 from odd_dbt.domain.credentials import Credentials
+from odd_dbt.domain.source import Source
 
 
 class Generator(Protocol):
     generator_cls: Type[odd.Generator]
     credentials: Credentials
 
-    def get_oddrn_for(self, model: ModelNode, path: Optional[str] = None) -> str:
+    @singledispatchmethod
+    def get_oddrn_for(self, node: ModelNode) -> str:
+        ...
+
+    @get_oddrn_for.register
+    def _(self, node: ModelNode) -> str:
+        return self._get_oddrn_for_model(node)
+
+    @get_oddrn_for.register
+    def _(self, node: Source) -> str:
+        return self._get_oddrn_for_source(node)
+
+    @abc.abstractmethod
+    def _get_oddrn_for_model(self, model: ModelNode) -> str:
+        ...
+
+    @abc.abstractmethod
+    def _get_oddrn_for_source(self, source: Source) -> str:
         ...
 
 
@@ -20,13 +40,20 @@ class PostgresGenerator(Generator):
     def __init__(self, credentials: Credentials) -> None:
         self.credentials = credentials
 
-    def get_oddrn_for(self, model: ModelNode, path: Optional[str] = None) -> str:
+    def _get_oddrn_for_model(self, model: ModelNode) -> str:
         host = self.credentials["host"]
         database = self.credentials["database"] or self.credentials["dbname"]
         generator = self.generator_cls(host_settings=host, databases=database)
         path = "views" if model.config.materialized == "view" else "tables"
         generator.set_oddrn_paths(**{"schemas": model.schema})
         return generator.get_oddrn_by_path(path, model.name)
+
+    def _get_oddrn_for_source(self, source: Source) -> str:
+        host = self.credentials["host"]
+        database = source.database
+        generator = self.generator_cls(host_settings=host, databases=database)
+        generator.set_oddrn_paths(**{"schemas": source.schema, "tables": source.name})
+        return generator.get_oddrn_by_path("tables")
 
 
 class SnowflakeGenerator(Generator):
@@ -35,7 +62,7 @@ class SnowflakeGenerator(Generator):
     def __init__(self, credentials: Credentials) -> None:
         self.credentials = credentials
 
-    def get_oddrn_for(self, model: ModelNode, path: Optional[str] = None) -> str:
+    def _get_oddrn_for(self, model: ModelNode) -> str:
         host = f"{self.credentials['account'].upper()}.snowflakecomputing.com"
         database = self.credentials["database"] or self.credentials["dbname"]
         database = database.upper()
@@ -46,6 +73,17 @@ class SnowflakeGenerator(Generator):
         path = "views" if model.config.materialized == "view" else "tables"
         generator.set_oddrn_paths(**{"schemas": model.schema.upper()})
         return generator.get_oddrn_by_path(path, name)
+
+    def _get_oddrn_for_source(self, source: Source) -> str:
+        host = f"{self.credentials['account'].upper()}.snowflakecomputing.com"
+        database = source.database.upper()
+
+        generator = self.generator_cls(host_settings=host, databases=database)
+
+        generator.set_oddrn_paths(
+            **{"schemas": source.schema.upper(), "tables": source.name.upper()}
+        )
+        return generator.get_oddrn_by_path("tables")
 
 
 ODDRN_GENERATORS: dict[str, Type[Generator]] = {
