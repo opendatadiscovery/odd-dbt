@@ -1,4 +1,4 @@
-from odd_models import DataEntity, DataTransformer, DataSet, DataInput
+from odd_models import DataEntity, DataTransformer, DataSet, DataInput, DataSetField
 import abc
 
 
@@ -37,6 +37,11 @@ class ModelEntity(NodeEntity):
             self.data_transformer.outputs.append(oddrn)
 
 
+class ColumnEntity(DataSetField):
+    def __init__(self, **data: dict):
+        super().__init__(**data)
+
+
 class SeedEntity(NodeEntity):
     def __init__(self, **data: dict):
         super().__init__(**data)
@@ -52,3 +57,6 @@ class SeedEntity(NodeEntity):
     def add_output(self, oddrn: str) -> None:
         if oddrn not in self.data_input.outputs:
             self.data_input.outputs.append(oddrn)
+
+    def add_column(self, column: ColumnEntity) -> None:
+        self.dataset.field_list.append(column)

@@ -1,16 +1,16 @@
 import traceback
 from typing import Optional, Union
-
-from dbt.contracts.graph.nodes import ModelNode, SeedNode
+from odd_dbt.mapper.types import DBT_TO_ODD
+from dbt.contracts.graph.nodes import ModelNode, SeedNode, ColumnInfo
 from odd_models.models import (
     DataEntityList,
     DataEntityType,
 )
 from oddrn_generator import DbtGenerator
-
+from odd_models import DataSetFieldType
 from odd_dbt import logger
 from odd_dbt.domain.context import DbtContext
-from odd_dbt.domain.model import ModelEntity, SeedEntity, NodeEntity
+from odd_dbt.domain.model import ModelEntity, SeedEntity, NodeEntity, ColumnEntity
 from odd_dbt.mapper.generator import create_generator
 from odd_dbt.mapper.metadata import get_model_metadata
 
@@ -64,12 +64,30 @@ class DbtLineageMapper:
             return self.map_seed(node)
 
     def map_seed(self, node: SeedNode) -> SeedEntity:
-        return SeedEntity(
+        self._generator.set_oddrn_paths(seeds=node.unique_id)
+
+        seed_entity = SeedEntity(
             name=node.unique_id,
-            oddrn=self._generator.get_oddrn_by_path("seeds", node.unique_id),
+            oddrn=self._generator.get_oddrn_by_path("seeds"),
             owner=None,
             type=DataEntityType.FILE,
             metadata=[get_model_metadata(node)],
+        )
+
+        for column in node.columns.values():
+            seed_entity.add_column(self.map_column(column, generator=self._generator))
+
+        return seed_entity
+
+    def map_column(self, column: ColumnInfo, generator: DbtGenerator) -> ColumnEntity:
+        oddrn = generator.get_oddrn_by_path("seeds") + f"/columns/{column.name}"
+        return ColumnEntity(
+            name=column.name,
+            oddrn=oddrn,
+            type=DataSetFieldType(
+                type=DBT_TO_ODD['UNKNOWN'],
+                is_nullable=True
+            ),
         )
 
     def map_model(self, node: ModelNode) -> ModelEntity:
