@@ -1,7 +1,22 @@
-from odd_models import DataEntity, DataTransformer, DataSet
+from odd_models import DataEntity, DataTransformer, DataSet, DataInput
+import abc
 
 
-class ModelEntity(DataEntity):
+class NodeEntity(DataEntity, abc.ABC):
+    @abc.abstractmethod
+    def add_upstream(self, upstream_node: "NodeEntity") -> None:
+        ...
+
+    @abc.abstractmethod
+    def add_input(self, oddrn: str) -> None:
+        ...
+
+    @abc.abstractmethod
+    def add_output(self, oddrn: str) -> None:
+        ...
+
+
+class ModelEntity(NodeEntity):
     def __init__(self, **data: dict):
         super().__init__(**data)
 
@@ -9,6 +24,9 @@ class ModelEntity(DataEntity):
             inputs=[],
             outputs=[],
         )
+
+    def add_upstream(self, upstream_node: "NodeEntity") -> None:
+        self.add_input(upstream_node.oddrn)
 
     def add_input(self, oddrn: str) -> None:
         if oddrn not in self.data_transformer.inputs:
@@ -19,7 +37,18 @@ class ModelEntity(DataEntity):
             self.data_transformer.outputs.append(oddrn)
 
 
-class SeedEntity(DataEntity):
+class SeedEntity(NodeEntity):
     def __init__(self, **data: dict):
         super().__init__(**data)
         self.dataset = DataSet(field_list=[])
+        self.data_input = DataInput(outputs=[])
+
+    def add_upstream(self, upstream_node: "NodeEntity") -> None:
+        pass
+
+    def add_input(self, oddrn: str) -> None:
+        pass
+
+    def add_output(self, oddrn: str) -> None:
+        if oddrn not in self.data_input.outputs:
+            self.data_input.outputs.append(oddrn)
