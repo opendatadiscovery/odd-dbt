@@ -99,7 +99,7 @@ class DbtLineageMapper:
             type=DataEntityType.JOB,
             metadata=[get_model_metadata(node)],
         )
-        model_entity.add_output(get_materialized_entity_oddrn(node, self._context))
+        model_entity.add_input(get_materialized_entity_oddrn(node, self._context))
         return model_entity
 
 

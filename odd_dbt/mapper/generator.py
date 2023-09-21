@@ -62,7 +62,7 @@ class SnowflakeGenerator(Generator):
     def __init__(self, credentials: Credentials) -> None:
         self.credentials = credentials
 
-    def _get_oddrn_for(self, model: ModelNode) -> str:
+    def _get_oddrn_for_model(self, model: ModelNode) -> str:
         host = f"{self.credentials['account'].upper()}.snowflakecomputing.com"
         database = self.credentials["database"] or self.credentials["dbname"]
         database = database.upper()
