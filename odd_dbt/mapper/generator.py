@@ -1,6 +1,6 @@
 import abc
 from functools import singledispatchmethod
-from typing import Type, Protocol
+from typing import Type, Protocol, Any
 
 from dbt.contracts.graph.nodes import ModelNode
 from oddrn_generator import generators as odd
@@ -14,7 +14,7 @@ class Generator(Protocol):
     credentials: Credentials
 
     @singledispatchmethod
-    def get_oddrn_for(self, node: ModelNode) -> str:
+    def get_oddrn_for(self, node: Any) -> str:
         ...
 
     @get_oddrn_for.register
