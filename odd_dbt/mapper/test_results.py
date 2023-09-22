@@ -32,15 +32,22 @@ class DbtTestMapper:
 
     def map(self) -> DataEntityList:
         data_entities = []
-        generic_test_nodes = self._context.manifest.generic_tests
+        
+        test_results = [res for res in self._context.results if res.unique_id.startswith("test.")]
+        
+        if not test_results:
+            raise ValueError("run_results.json doesn't contain any test result. Was dbt test command executed?")
 
-        for result in self._context.results:
+        for result in test_results:
             try:
-                data_entities.extend(self.map_result(result, generic_test_nodes))
+                data_entities.extend(self.map_result(result, self._context.manifest.nodes))
             except Exception as e:
                 logger.warning(f"Can't map result {result.unique_id}: {str(e)}")
                 logger.debug(traceback.format_exc())
                 continue
+        
+        if not data_entities:
+            raise ValueError("No test results were mapped. Data will not be ingested")
 
         data_entities = DataEntityList(
             data_source_oddrn=self._generator.get_data_source_oddrn(),
