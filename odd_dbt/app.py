@@ -1,3 +1,4 @@
+import contextlib
 import traceback
 from pathlib import Path
 from typing import Optional
@@ -19,6 +20,16 @@ app = typer.Typer(
     short_help="Run dbt tests and inject results to ODD platform",
     pretty_exceptions_show_locals=False,
 )
+
+
+@contextlib.contextmanager
+def handle_errors():
+    try:
+        yield
+    except Exception as e:
+        logger.debug(traceback.format_exc())
+        logger.error(e)
+        raise typer.Exit(1)
 
 
 @app.command()
@@ -71,14 +82,15 @@ def create_datasource(
         ..., "--token", "-t", envvar="ODD_PLATFORM_TOKEN"
     ),
 ):
-    client = config.create_odd_client(host=platform_host, token=platform_token)
-    oddrn = odd_api.create_datasource(data_source_name, dbt_host, client)
+    with handle_errors():
+        client = config.create_odd_client(host=platform_host, token=platform_token)
+        oddrn = odd_api.create_datasource(data_source_name, dbt_host, client)
 
-    logger.info(f"Data source oddrn: '{oddrn}'")
-    logger.info(
-        "You can use command below to add newly created ODDRN for next commands:"
-    )
-    logger.info(f"export DBT_DATA_SOURCE_ODDRN={oddrn}")
+        logger.info(f"Data source oddrn: '{oddrn}'")
+        logger.info(
+            "You can use command below to add newly created ODDRN for next commands:"
+        )
+        logger.info(f"export DBT_DATA_SOURCE_ODDRN={oddrn}")
 
 
 @app.command()
@@ -95,20 +107,21 @@ def ingest_test(
         ..., "--dbt-oddrn", "-oddrn", envvar="DBT_DATA_SOURCE_ODDRN"
     ),
 ):
-    cli_args = CliArgs(
-        project_dir=project_dir,
-        profiles_dir=profiles_dir,
-        profile=profile,
-        target=target,
-        threads=1,
-        vars={},
-    )
-    context = dbt.get_context(cli_args=cli_args)
-    client = config.create_odd_client(host=platform_host, token=platform_token)
-    generator = odd.create_dbt_generator_from_oddrn(oddrn=dbt_data_source_oddrn)
+    with handle_errors():
+        cli_args = CliArgs(
+            project_dir=project_dir,
+            profiles_dir=profiles_dir,
+            profile=profile,
+            target=target,
+            threads=1,
+            vars={},
+        )
+        context = dbt.get_context(cli_args=cli_args)
+        client = config.create_odd_client(host=platform_host, token=platform_token)
+        generator = odd.create_dbt_generator_from_oddrn(oddrn=dbt_data_source_oddrn)
 
-    data_entities = DbtTestMapper(context=context, generator=generator).map()
-    odd_api.ingest_entities(data_entities, client)
+        data_entities = DbtTestMapper(context=context, generator=generator).map()
+        odd_api.ingest_entities(data_entities, client)
 
 
 @app.command()
@@ -125,20 +138,21 @@ def ingest_lineage(
         ..., "--dbt-oddrn", "-oddrn", envvar="DBT_DATA_SOURCE_ODDRN"
     ),
 ):
-    cli_args = CliArgs(
-        project_dir=project_dir,
-        profiles_dir=profiles_dir,
-        profile=profile,
-        target=target,
-        threads=1,
-        vars={},
-    )
-    context = dbt.get_context(cli_args=cli_args)
-    client = config.create_odd_client(host=platform_host, token=platform_token)
-    generator = odd.create_dbt_generator_from_oddrn(oddrn=dbt_data_source_oddrn)
+    with handle_errors():
+        cli_args = CliArgs(
+            project_dir=project_dir,
+            profiles_dir=profiles_dir,
+            profile=profile,
+            target=target,
+            threads=1,
+            vars={},
+        )
+        context = dbt.get_context(cli_args=cli_args)
+        client = config.create_odd_client(host=platform_host, token=platform_token)
+        generator = odd.create_dbt_generator_from_oddrn(oddrn=dbt_data_source_oddrn)
 
-    data_entities = DbtLineageMapper(context=context, generator=generator).map()
-    odd_api.ingest_entities(data_entities, client)
+        data_entities = DbtLineageMapper(context=context, generator=generator).map()
+        odd_api.ingest_entities(data_entities, client)
 
 
 if __name__ == "__main__":
