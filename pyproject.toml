@@ -20,7 +20,7 @@ odd-models = "^2.0.33"
 oddrn-generator = "^0.1.95"
 funcy = "^2.0"
 sqlalchemy = "^1.4.46"
-loguru = "^0.6.0"
+loguru = "^0.7.2"
 typer = { extras = ["all"], version = "^0.7.0" }
 psycopg2-binary = "^2.9.6"
 dbt-postgres = "^1.6.2"
