@@ -47,7 +47,9 @@ export DBT_DATA_SOURCE_ODDRN=//dbt/host/localhost
 ```
 
 ### Commands
-`create-datasource` - helps to register dbt as data source at OpenDataDiscovery platform. User later for ingesting metadata.
+`create-datasource` - helps to register dbt as data source at OpenDataDiscovery platform. Used later for ingesting metadata.
+Despite in the logs you can see something like: `export DBT_DATA_SOURCE_ODDRN=//dbt/host/http://localhost:8080` it doesn't
+mean that script have exported it for you in terminal, so don't forget to do this command manually.
 ```commandline
 odd_dbt_test create-datasource --name=my_local_dbt --dbt-host=localhost
 ```
@@ -55,6 +57,17 @@ odd_dbt_test create-datasource --name=my_local_dbt --dbt-host=localhost
 `ingest-test` - Read results_run file under the target folder to parse and ingest metadata.
 ```commandline
 odd_dbt_test ingest-test --profile=my_profile
+```
+If you are not in the directory that is a targeted dbt_project you should specify absolute paths for parameters:
+`--project-dir` and `--profiles-dir`, like this:
+```commandline
+odd_dbt_test ingest-test --project-dir=absolute_path_for_dbt_project --profiles-dir=absolute_path_for_dbt_profiles  --profile=my_profile
+```
+
+`ingest-lineage` - Builds and ingest a lineage for tests into platform.
+Executing style is simular to `ingest-test` command:
+```commandline
+odd_dbt_test ingest-lineage- --project-dir=absolute_path_for_dbt_project --profiles-dir=absolute_path_for_dbt_profiles  --profile=my_profile
 ```
 
 `test` - Proxy command to `dbt test`, then reads results_run file under the target folder to parse and ingest metadata.
